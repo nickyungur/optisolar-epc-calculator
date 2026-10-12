@@ -1,0 +1,273 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>OptiSolar · Калькулятор КП</title>
+<link rel="stylesheet" href="css/app.css">
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+</head>
+<body>
+<header class="bar">
+  <img src="img/optisolar-logo.png" alt="OptiSolar" class="bar-logo">
+  <div class="bar-title">Калькулятор КП</div>
+  <nav class="tabs" role="tablist">
+    <button class="tab active" data-tab="calc" type="button">Расчёт</button>
+    <button class="tab" data-tab="rates" type="button">Ставки</button>
+    <button class="tab" data-tab="projects" type="button">Проекты</button>
+  </nav>
+</header>
+
+<main>
+  <!-- ================= РАСЧЁТ ================= -->
+  <section id="tab-calc" class="tabpane active">
+
+    <!-- ① ЧТО СЧИТАЕМ -->
+    <div class="card step">
+      <h2><span class="step-no">1</span> Что считаем</h2>
+      <div class="row2">
+        <div class="field">
+          <label>Клиент</label>
+          <div class="chips" data-name="segment">
+            <button type="button" data-value="home">Дом</button>
+            <button type="button" data-value="biz" class="on">Бизнес</button>
+          </div>
+        </div>
+        <div class="field">
+          <label>Система</label>
+          <div class="chips" data-name="product">
+            <button type="button" data-value="pv">СЭС</button>
+            <button type="button" data-value="pv_bess">СЭС + BESS</button>
+            <button type="button" data-value="bess" class="on">BESS</button>
+          </div>
+        </div>
+      </div>
+      <div class="sub">Мощность</div>
+      <div class="grid3">
+        <div class="field" data-show="pv"><label for="pvKwp">СЭС, кВтп</label><input id="pvKwp" inputmode="decimal" value="0"></div>
+        <div class="field" data-show="bess"><label for="bessKw">BESS, кВт</label><input id="bessKw" inputmode="decimal" value="500"></div>
+        <div class="field" data-show="bess"><label for="bessKwh">BESS, кВт·ч</label><input id="bessKwh" inputmode="decimal" value="1000"></div>
+      </div>
+      <div class="sub">Объект</div>
+      <div class="row2">
+        <div class="field" data-show="biz">
+          <label>Подключение</label>
+          <div class="chips" data-name="voltage">
+            <button type="button" data-value="0.4" class="on">0,4 кВ</button>
+            <button type="button" data-value="10">10 кВ</button>
+            <button type="button" data-value="35">35 кВ</button>
+          </div>
+        </div>
+        <div class="field" data-show="pv">
+          <label>Панели</label>
+          <div class="chips" data-name="mount">
+            <button type="button" data-value="roof" class="on">На крыше</button>
+            <button type="button" data-value="ground">На земле</button>
+          </div>
+        </div>
+      </div>
+      <div class="grid3">
+        <div class="field"><label for="distanceKm">От Кишинёва, км</label><input id="distanceKm" inputmode="decimal" value="50"></div>
+        <div class="field" data-show="biz"><label for="cableLvM">Кабель НН, м</label><input id="cableLvM" inputmode="decimal" value="50"></div>
+        <div class="field" data-show="mv"><label for="cableMvM">Линия СН, м</label><input id="cableMvM" inputmode="decimal" value="300"></div>
+      </div>
+      <label class="check" data-show="zero"><input type="checkbox" id="zeroExport"> Zero Export (без выдачи в сеть)</label>
+      <p class="note">Смена мощности, клиента, системы или напряжения пересобирает позиции и сбрасывает правки строк. Добавленные вручную позиции остаются.</p>
+    </div>
+
+    <!-- ② КЛИЕНТ -->
+    <div class="card step">
+      <h2><span class="step-no">2</span> Клиент</h2>
+      <div class="grid2">
+        <div class="field"><label for="client">Название / имя</label><input id="client" placeholder="LAPMOL SRL"></div>
+        <div class="field"><label for="location">Населённый пункт</label><input id="location" placeholder="or. Călărași"></div>
+        <div class="field"><label for="leadId">ID лида</label><input id="leadId" placeholder="L-0042"></div>
+        <div class="field"><label for="goal">Цель BESS</label>
+          <select id="goal">
+            <option value="">—</option>
+            <option value="backup">Резерв (backup)</option>
+            <option value="peak_shaving">Срезка пиков (peak shaving)</option>
+            <option value="self_consumption">Самопотребление</option>
+            <option value="zero_export">Zero Export</option>
+            <option value="arbitrage">Арбитраж</option>
+            <option value="hybrid">Несколько целей</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <!-- ③ ПОЗИЦИИ -->
+    <div class="card step">
+      <div class="card-head">
+        <h2><span class="step-no">3</span> Позиции</h2>
+        <div class="buttons small">
+          <button type="button" class="btn primary" id="btnAddItem">+ Позиция</button>
+          <button type="button" class="btn" id="btnResetItems">Сбросить правки</button>
+        </div>
+      </div>
+      <div id="addPanel" class="add-panel" hidden>
+        <div class="field"><label for="addRate">Позиция из ставок</label><select id="addRate"></select></div>
+        <div class="grid2">
+          <div class="field"><label for="addName">Название (как в оффере)</label><input id="addName"></div>
+          <div class="field"><label for="addCat">Раздел</label><select id="addCat"></select></div>
+        </div>
+        <div class="add-fields">
+          <div class="field" id="addKwBox" hidden><label for="addKw">кВт (для цены)</label><input id="addKw" inputmode="decimal"></div>
+          <div class="field"><label for="addQty">Кол.</label><input id="addQty" inputmode="decimal" value="1"></div>
+          <div class="field"><label for="addUnit">Ед.</label><input id="addUnit" value="buc"></div>
+          <div class="field"><label for="addCost" id="addCostLabel">Цена, MDL без TVA</label><input id="addCost" inputmode="decimal"></div>
+          <div class="field"><label for="addVat">TVA</label><select id="addVat"></select></div>
+        </div>
+        <p class="hint" id="addHint"></p>
+        <div class="buttons small">
+          <button type="button" class="btn primary" id="btnAddConfirm">Добавить</button>
+          <button type="button" class="btn" id="btnAddCancel">Отмена</button>
+        </div>
+      </div>
+      <div class="calc-settings">
+        <label>Косвенные <input id="indirect" inputmode="decimal"> %</label>
+        <label>Риск <input id="risk" inputmode="decimal"> %</label>
+        <label class="check"><input type="checkbox" id="vatEnabled" checked> TVA 20%</label>
+      </div>
+      <div class="st-legend">
+        <span class="lg inv">Счёт 2026</span><span class="lg mkt">Рынок</span><span class="lg opt">OptiSolar / вручную</span><span class="lg est">Оценка</span>
+        <span class="lg-hint">Название — как в оффере, его можно править. Цена — за единицу, без TVA.</span>
+      </div>
+      <div id="items"></div>
+    </div>
+
+    <!-- ④ ОФФЕР -->
+    <div class="card step offer-card" id="offerCard">
+      <h2><span class="step-no">4</span> Оффер</h2>
+      <div class="grid3">
+        <div class="field"><label>Язык</label>
+          <div class="chips" data-name="lang">
+            <button type="button" data-value="ro" class="on">RO</button>
+            <button type="button" data-value="ru">RU</button>
+          </div>
+        </div>
+        <div class="field"><label for="validDays">Действует, дней</label><input id="validDays" inputmode="numeric" value="7"></div>
+        <div class="field"><label for="managerPhone">Мой телефон</label><input id="managerPhone" inputmode="tel" placeholder="+373 …"></div>
+      </div>
+      <label class="check"><input type="checkbox" id="kdOk"> КД проверил — убрать пометку «черновик»</label>
+      <div class="buttons small export-bar">
+        <button type="button" class="btn primary" data-preview="a4">Просмотр и PDF A4</button>
+        <button type="button" class="btn primary" data-preview="mobile">Просмотр и PDF для телефона</button>
+        <button type="button" class="btn" data-export="print">Печать</button>
+        <span class="sep"></span>
+        <button type="button" class="btn" id="btnNote">Записка для КД</button>
+        <button type="button" class="btn" id="btnSave">Сохранить проект</button>
+      </div>
+      <p class="hint" id="exportStatus"></p>
+      <p class="note">Текст в оффере можно поправить прямо на листе. При пересчёте он собирается заново.</p>
+      <div id="offerDoc" class="offer-host"></div>
+    </div>
+
+    <!-- ИТОГ — всегда внизу экрана -->
+    <div class="sumbar" id="sumbar">
+      <div class="sum-details" id="sumDetails" hidden>
+        <div class="kpis">
+          <div><span>Без TVA</span><b id="sumNet">—</b></div>
+          <div><span>Себестоимость</span><b id="sumCost">—</b></div>
+          <div><span>Прибыль</span><b id="sumProfit">—</b></div>
+          <div><span>Маржа</span><b id="sumMargin">—</b></div>
+        </div>
+        <div id="perUnit" class="per-unit"></div>
+        <div class="hint" id="fxHint"></div>
+        <ul id="warnings" class="warnings"></ul>
+      </div>
+      <div class="sum-row">
+        <div class="sum-total"><span>Итого с TVA</span><b id="sumGross">—</b></div>
+        <span class="pill" id="marginPill">—</span>
+        <div class="chips cur-chips" data-name="currency">
+          <button type="button" data-value="MDL" class="on">MDL</button>
+          <button type="button" data-value="EUR">EUR</button>
+        </div>
+        <button type="button" class="btn more" id="btnDetails">Подробнее ▴</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= СТАВКИ ================= -->
+  <section id="tab-rates" class="tabpane">
+    <div class="card">
+      <h2>Курсы и наценка</h2>
+      <p class="hint" id="fxInfo"></p>
+      <div class="grid3" id="fxFields"></div>
+      <h3>Коэффициент по категориям</h3>
+      <div id="coefTable"></div>
+    </div>
+    <div class="card">
+      <div class="card-head">
+        <h2>Ставки</h2>
+        <div class="buttons small">
+          <button type="button" class="btn" id="btnRatesExport">Экспорт</button>
+          <button type="button" class="btn" id="btnRatesImport">Импорт</button>
+          <button type="button" class="btn" id="btnRatesReset">Сбросить к базе</button>
+        </div>
+      </div>
+      <div class="legend">
+        <span class="badge inv">Счёт 2026</span><span class="badge mkt">Рынок</span><span class="badge opt">OptiSolar</span><span class="badge est">Оценка</span>
+      </div>
+      <input id="rateFilter" class="filter" placeholder="Поиск ставки…">
+      <div id="ratesList"></div>
+      <input type="file" id="ratesFile" accept="application/json" hidden>
+    </div>
+  </section>
+
+  <!-- ================= ПРОЕКТЫ ================= -->
+  <section id="tab-projects" class="tabpane">
+    <div class="card">
+      <div class="card-head">
+        <h2>Сохранённые проекты</h2>
+        <div class="buttons small"><button type="button" class="btn" id="btnExportInput">calc-input.json</button></div>
+      </div>
+      <p class="hint">Проекты хранятся только в этом браузере. Для среды — кнопка calc-input.json.</p>
+      <div id="projectsList"></div>
+    </div>
+  </section>
+</main>
+
+<div id="previewModal" class="modal" hidden>
+  <div class="modal-box preview-box">
+    <div class="modal-head preview-head">
+      <div class="chips pv-chips" data-name="previewFormat">
+        <button type="button" data-value="a4" class="on">A4</button>
+        <button type="button" data-value="mobile">Телефон</button>
+      </div>
+      <span class="hint" id="previewInfo"></span>
+      <div class="buttons small">
+        <button type="button" class="btn primary" id="btnPreviewPdf">Сохранить PDF</button>
+        <button type="button" class="btn" id="btnPreviewPng">PNG</button>
+        <button type="button" class="btn" id="btnClosePreview">Закрыть</button>
+      </div>
+    </div>
+    <div id="previewBody" class="preview-body"></div>
+    <p class="hint preview-status" id="previewStatus"></p>
+  </div>
+</div>
+
+<div id="noteModal" class="modal" hidden>
+  <div class="modal-box">
+    <div class="modal-head">
+      <b>Записка для КД</b>
+      <div class="buttons small">
+        <button type="button" class="btn primary" id="btnCopyNote">Копировать</button>
+        <button type="button" class="btn" id="btnCloseNote">Закрыть</button>
+      </div>
+    </div>
+    <textarea id="noteText" rows="16" readonly></textarea>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="js/data.js"></script>
+<script src="js/calculator.js"></script>
+<script src="js/logo.js"></script>
+<script src="js/ratebook.js"></script>
+<script src="js/generator.js"></script>
+<script src="js/offer.js"></script>
+<script src="js/main.js"></script>
+</body>
+</html>
