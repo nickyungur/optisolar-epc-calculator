@@ -245,11 +245,9 @@ body.no-scroll { overflow: hidden; }
 .offer-host { margin-top: 10px; }
 .offer-render-host { position: fixed; left: -12000px; top: 0; background: #fff; }
 .offer-document { position: relative; isolation: isolate; overflow: hidden; background: #fff; color: #161616; border: 1px solid #e5e7eb; border-radius: 14px; padding: 34px 36px 22px; box-shadow: 0 8px 28px rgba(15, 23, 42, .08); font-family: Arial, Helvetica, sans-serif; font-size: 13px; line-height: 1.35; }
-.offer-watermark { position: absolute; z-index: -1; right: -120px; top: 90px; width: 500px; opacity: .055; transform: rotate(-5deg); pointer-events: none; }
-.offer-draft { position: absolute; top: 12px; right: 16px; background: #fff3cd; color: #7a5300; font-size: 11px; padding: 3px 8px; border-radius: 4px; }
 .offer-brand-header { display: flex; align-items: center; justify-content: space-between; gap: 26px; padding-bottom: 20px; border-bottom: 1px solid #d8dce1; }
 .offer-brand-logo-wrap { width: 42%; max-width: 310px; }
-.offer-brand-logo { display: block; width: 100%; max-height: 100px; object-fit: contain; object-position: left center; }
+.offer-brand-logo { display: block; width: 100%; max-width: 100%; height: auto; max-height: 100px; object-fit: contain; object-position: left center; }
 .offer-company-details { border-left: 1px solid #d8dce1; padding-left: 24px; display: grid; gap: 9px; font-size: 13px; color: #31343a; }
 .contact-symbol { display: inline-block; width: 23px; font-size: 17px; font-weight: 700; color: #333; }
 .offer-title-block { padding: 24px 0 12px; }
@@ -315,8 +313,6 @@ body.no-scroll { overflow: hidden; }
 .offer-narrow .offer-info-grid, .offer-narrow .offer-bottom-grid { grid-template-columns: 1fr; }
 .offer-narrow .offer-signature { padding-top: 0; }
 .offer-narrow .c-unit, .offer-narrow .c-price, .offer-narrow .c-net, .offer-narrow .c-vatp, .offer-narrow .c-vat { display: none; }
-.offer-narrow .offer-watermark { right: -80px; width: 340px; }
-.offer-narrow .offer-draft { position: static; display: inline-block; margin-bottom: 10px; }
 @media (max-width: 760px) {
     /* узкий экран: на странице оффер складывается в колонку; лист A4 для PDF не трогаем */
     .offer-document:not(.offer-a4) { padding: 20px 14px 16px; }
@@ -328,7 +324,6 @@ body.no-scroll { overflow: hidden; }
     .offer-document:not(.offer-a4) .offer-document-meta > div { border-right: 0; border-bottom: 1px solid #e2e5e9; padding: 5px 0; }
     .offer-document:not(.offer-a4) .offer-info-grid, .offer-document:not(.offer-a4) .offer-bottom-grid { grid-template-columns: 1fr; }
     .offer-document:not(.offer-a4) .offer-signature { padding-top: 0; }
-    .offer-document:not(.offer-a4) .offer-draft { position: static; display: inline-block; margin-bottom: 10px; }
     .offer-document:not(.offer-a4) .c-unit, .offer-document:not(.offer-a4) .c-price, .offer-document:not(.offer-a4) .c-net, .offer-document:not(.offer-a4) .c-vatp, .offer-document:not(.offer-a4) .c-vat { display: none; }
 }
 }
