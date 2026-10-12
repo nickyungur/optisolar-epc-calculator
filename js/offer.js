@@ -43,7 +43,6 @@
             stations: {
                 pv: "Centrală fotovoltaică", pv_bess: "Centrală fotovoltaică cu sistem de stocare (BESS)", bess: "Sistem de stocare a energiei (BESS)"
             },
-            draft: "CIORNĂ — prețurile nu sunt confirmate"
         },
         ru: {
             kicker: "КОММЕРЧЕСКОЕ ПРЕДЛОЖЕНИЕ", sub: "на реализацию энергетического проекта",
@@ -69,7 +68,6 @@
             stations: {
                 pv: "Солнечная электростанция", pv_bess: "Солнечная станция с накопителем (BESS)", bess: "Система накопления энергии (BESS)"
             },
-            draft: "ЧЕРНОВИК — цены не подтверждены"
         }
     };
 
@@ -219,8 +217,6 @@
 
         return `
 <article class="offer-document" lang="${lang}">
-  <img class="offer-watermark" src="${logo}" alt="" aria-hidden="true">
-  ${opts.draft ? `<div class="offer-draft">${esc(t.draft)}</div>` : ""}
   <header class="offer-brand-header">
     <div class="offer-brand-logo-wrap"><img class="offer-brand-logo" src="${logo}" alt="OPTISOLAR renewed energy"></div>
     <div class="offer-company-details">
