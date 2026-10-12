@@ -248,7 +248,7 @@ body.no-scroll { overflow: hidden; }
 .offer-watermark { position: absolute; z-index: -1; right: -120px; top: 90px; width: 500px; opacity: .055; transform: rotate(-5deg); pointer-events: none; }
 .offer-brand-header { display: flex; align-items: center; justify-content: space-between; gap: 26px; padding-bottom: 20px; border-bottom: 1px solid #d8dce1; }
 .offer-brand-logo-wrap { width: 42%; max-width: 310px; }
-.offer-brand-logo { display: block; width: 100%; max-width: 100%; height: 100px; object-fit: contain; object-position: left center; }
+.offer-brand-logo { display: block; width: 100%; max-width: 100%; height: auto; object-fit: contain; object-position: left center; }
 .offer-company-details { border-left: 1px solid #d8dce1; padding-left: 24px; display: grid; gap: 9px; font-size: 13px; color: #31343a; }
 .contact-symbol { display: inline-block; width: 23px; font-size: 17px; font-weight: 700; color: #333; }
 .offer-title-block { padding: 24px 0 12px; }
