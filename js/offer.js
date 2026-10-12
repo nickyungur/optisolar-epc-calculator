@@ -217,6 +217,7 @@
 
         return `
 <article class="offer-document" lang="${lang}">
+  <img class="offer-watermark" src="${logo}" alt="" aria-hidden="true">
   <header class="offer-brand-header">
     <div class="offer-brand-logo-wrap"><img class="offer-brand-logo" src="${logo}" alt="OPTISOLAR renewed energy"></div>
     <div class="offer-company-details">
