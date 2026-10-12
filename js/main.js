@@ -76,7 +76,7 @@
         segment: "biz", product: "bess", voltage: "0.4", mount: "roof", lang: "ro",
         pvKwp: 0, bessKw: 500, bessKwh: 1000, distanceKm: 50, cableLvM: 50, cableMvM: 300, zeroExport: false,
         client: "", location: "", leadId: "", goal: "", validDays: 7, managerPhone: "",
-        indirect: null, risk: null, vatEnabled: true, kdOk: false, currency: "MDL",
+        indirect: null, risk: null, vatEnabled: true, currency: "MDL",
         edits: {}, extra: []
     };
     let state = { ...defaults, ...load(KEY_STATE, {}) };
@@ -149,7 +149,6 @@
     TEXT_FIELDS.forEach(id => $(id).addEventListener("input", () => { state[id] = $(id).value; persist(); renderOffer(); }));
     $("zeroExport").addEventListener("change", () => { state.zeroExport = $("zeroExport").checked; recalc(); });
     $("vatEnabled").addEventListener("change", () => { state.vatEnabled = $("vatEnabled").checked; recalc(); });
-    $("kdOk").addEventListener("change", () => { state.kdOk = $("kdOk").checked; persist(); renderOffer(); });
 
     function fillForm() {
         ["segment", "product", "voltage", "mount", "lang", "currency"].forEach(n => setChips(n, state[n]));
@@ -157,7 +156,6 @@
         TEXT_FIELDS.forEach(id => { $(id).value = state[id] ?? ""; });
         $("zeroExport").checked = !!state.zeroExport;
         $("vatEnabled").checked = state.vatEnabled !== false;
-        $("kdOk").checked = !!state.kdOk;
         const fin = window.RATEBOOK_ACTIVE.financial;
         if (state.indirect == null) $("indirect").value = fin.indirect;
         if (state.risk == null) $("risk").value = fin.risk;
@@ -455,13 +453,9 @@
         };
     }
 
-    function needsDraft() {
-        return !state.kdOk && last.items.some(i => i.status === "est");
-    }
-
     function offerOpts(extra) {
         const rb = window.RATEBOOK_ACTIVE;
-        return { lang: state.lang, logo: LOGO, draft: needsDraft(), currency: state.currency, fx: rb.fx.EUR, fxDate: rb.fx.date, ...extra };
+        return { lang: state.lang, logo: LOGO, currency: state.currency, fx: rb.fx.EUR, fxDate: rb.fx.date, ...extra };
     }
 
     // Оффер всегда виден в конце страницы и собирается заново при каждом пересчёте.
