@@ -67,6 +67,7 @@ main { max-width: 920px; margin: 0 auto; padding: 12px 16px 40px; }
 
 .field { display: flex; flex-direction: column; gap: 4px; margin-bottom: 10px; min-width: 0; }
 .field label { font-size: 12px; color: var(--muted); }
+.money-input { display: grid; grid-template-columns: minmax(0, 1fr) 82px; gap: 6px; min-width: 0; }
 input, select, textarea {
     font: inherit; color: var(--text); background: var(--bg);
     border: 1px solid var(--border); border-radius: 10px; padding: 9px 10px; width: 100%; min-width: 0;
