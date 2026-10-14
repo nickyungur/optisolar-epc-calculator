@@ -74,7 +74,7 @@
     // ---------- состояние ----------
     const defaults = {
         segment: "biz", product: "bess", voltage: "0.4", mount: "roof", lang: "ro",
-        pvKwp: 0, inverterKw: 0, pricePerKwp: 0, pricePerKwpCurrency: "MDL", powerIncreasePrice: 0, bessKw: 500, bessKwh: 1000, distanceKm: 50, cableLvM: 50, cableMvM: 300, zeroExport: false,
+        pvKwp: 0, inverterKw: 0, pricePerKwp: 0, pricePerKwpCurrency: "MDL", powerIncreasePrice: 0, roofType: "", roofMaterial: "", bessKw: 500, bessKwh: 1000, distanceKm: 50, cableLvM: 50, cableMvM: 300, zeroExport: false,
         client: "", location: "", leadId: "", goal: "", validDays: 7, managerPhone: "",
         indirect: null, risk: null, vatEnabled: true, currency: "MDL",
         edits: {}, extra: []
@@ -153,10 +153,17 @@
         state.pricePerKwpCurrency = $("pricePerKwpCurrency").value === "EUR" ? "EUR" : "MDL";
         recalc();
     });
+    ["roofType", "roofMaterial"].forEach(id => $(id).addEventListener("change", () => {
+        state[id] = $(id).value;
+        persist();
+        renderOffer();
+    }));
 
     function fillForm() {
         ["segment", "product", "voltage", "mount", "lang", "currency"].forEach(n => setChips(n, state[n]));
         NUM_FIELDS.forEach(id => { $(id).value = state[id] ?? ""; });
+        $("roofType").value = state.roofType || "";
+        $("roofMaterial").value = state.roofMaterial || "";
         $("pricePerKwpCurrency").value = state.pricePerKwpCurrency || "MDL";
         TEXT_FIELDS.forEach(id => { $(id).value = state[id] ?? ""; });
         $("zeroExport").checked = !!state.zeroExport;
@@ -174,7 +181,7 @@
         const mv = biz && state.voltage !== "0.4";
         document.querySelectorAll("[data-show]").forEach(el => {
             const k = el.dataset.show;
-            const show = k === "pv" ? hasPv : k === "inverter" ? (hasPv || (home && hasBess)) : k === "bess" ? hasBess : k === "bess-power" ? (hasBess && biz) : k === "biz" ? biz : k === "mv" ? mv : k === "zero" ? (hasPv && !(biz && hasBess)) : true;
+            const show = k === "pv" ? hasPv : k === "inverter" ? (hasPv || (home && hasBess)) : k === "bess" ? hasBess : k === "bess-power" ? (hasBess && biz) : k === "biz" ? biz : k === "mv" ? mv : k === "zero" ? (hasPv && !(biz && hasBess)) : k === "home-roof" ? (home && hasPv) : true;
             el.hidden = !show;
         });
     }
@@ -520,7 +527,9 @@
             meta: {
                 client: state.client, location: state.location, leadId: state.leadId, goal: state.goal,
                 validDays: state.validDays || 7, manager: "Nikita Ungureanu", managerRole: "Project Manager",
-                managerPhone: state.managerPhone
+                managerPhone: state.managerPhone,
+                roofType: state.segment === "home" && state.product !== "bess" ? state.roofType : "",
+                roofMaterial: state.segment === "home" && state.product !== "bess" ? state.roofMaterial : ""
             }
         };
     }
