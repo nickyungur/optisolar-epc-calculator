@@ -1,6 +1,6 @@
 // =========================================
 // ОФФЕР — дизайн исходного калькулятора (app/): белый лист, логотип,
-// жёлтые акценты, карточки «Client» и «Parametri tehnici», таблица с TVA.
+// жёлтые акценты, карточка клиента и объекта, таблица с TVA.
 // В клиентском оффере нет себестоимости, коэффициентов и маржи.
 // Валюта — MDL или EUR (пересчёт по курсу BNM из ratebook).
 // =========================================
@@ -22,11 +22,10 @@
         ro: {
             kicker: "OFERTĂ COMERCIALĂ", sub: "pentru implementarea proiectului energetic",
             no: "Nr. ofertă", date: "Data emiterii", valid: "Valabilă până la", days: "zile calendaristice",
-            client: "CLIENT", name: "Nume", place: "Locație", type: "Tip proiect", voltage: "Nivel de racordare",
-            tech: "PARAMETRI TEHNICI",
-            pv: "Putere instalată PV", panels: "Panouri fotovoltaice", yield: "Producție estimată", perYear: "kWh/an",
-            bess: "Capacitate BESS", pcs: "Putere BESS (PCS)", autonomy: "Autonomie la putere nominală", hours: "ore",
-            goal: "Destinație BESS",
+            client: "CLIENT ȘI OBIECT", name: "Nume", place: "Locație", type: "Tip proiect", voltage: "Nivel de racordare",
+            roofType: "Forma acoperișului", roofMaterial: "Materialul acoperișului",
+            roofTypes: { flat: "Plat", mono: "Într-o apă", gable: "În două ape", hip: "În patru ape", tent: "Piramidal", mansard: "Mansardat", arched: "Arcuit", combined: "Combinat", other: "Alt tip" },
+            roofMaterials: { metal_tile: "Țiglă metalică", sandwich: "Panou sandwich", profiled_sheet: "Tablă cutată", standing_seam: "Tablă fălțuită", ceramic_tile: "Țiglă ceramică", concrete_tile: "Țiglă din beton", slate: "Ardezie", bitumen_shingle: "Șindrilă bituminoasă", membrane: "Membrană / carton bitumat", concrete_slab: "Placă de beton", other: "Alt material" },
             cols: ["Nr.", "Denumire", "Cantitate", "Unitate", "Preț unitar", "Valoare", "TVA %", "TVA", "Total cu TVA"],
             subtotal: "Total fără TVA", vat: "TVA totală", vatNa: "TVA (neaplicabilă)", total: "Total cu TVA", totalNoVat: "Total",
             optional: "Opțional", battery: "Acumulator", powerIncrease: "Serviciu de majorare a puterii", pricePerKw: "Preț per kW cu TVA",
@@ -48,11 +47,10 @@
         ru: {
             kicker: "КОММЕРЧЕСКОЕ ПРЕДЛОЖЕНИЕ", sub: "на реализацию энергетического проекта",
             no: "№ предложения", date: "Дата", valid: "Действует до", days: "календарных дней",
-            client: "КЛИЕНТ", name: "Название", place: "Место", type: "Тип проекта", voltage: "Напряжение подключения",
-            tech: "ТЕХНИЧЕСКИЕ ПАРАМЕТРЫ",
-            pv: "Мощность СЭС", panels: "Солнечные панели", yield: "Ожидаемая выработка", perYear: "кВт·ч/год",
-            bess: "Ёмкость BESS", pcs: "Мощность BESS (PCS)", autonomy: "Время работы на полной мощности", hours: "ч",
-            goal: "Назначение BESS",
+            client: "КЛИЕНТ И ОБЪЕКТ", name: "Название", place: "Место", type: "Тип проекта", voltage: "Напряжение подключения",
+            roofType: "Форма крыши", roofMaterial: "Материал кровли",
+            roofTypes: { flat: "Плоская", mono: "Односкатная", gable: "Двускатная", hip: "Вальмовая", tent: "Шатровая", mansard: "Мансардная", arched: "Арочная", combined: "Комбинированная", other: "Другая" },
+            roofMaterials: { metal_tile: "Металлочерепица", sandwich: "Сэндвич-панель", profiled_sheet: "Профнастил", standing_seam: "Фальцевая кровля", ceramic_tile: "Керамическая черепица", concrete_tile: "Цементно-песчаная черепица", slate: "Шифер", bitumen_shingle: "Битумная черепица", membrane: "Мембрана / рубероид", concrete_slab: "Бетонная плита", other: "Другой материал" },
             cols: ["№", "Наименование", "Кол-во", "Ед.", "Цена за ед.", "Сумма", "TVA %", "TVA", "Итого с TVA"],
             subtotal: "Итого без TVA", vat: "TVA", vatNa: "TVA (не применяется)", total: "Итого с TVA", totalNoVat: "Итого",
             optional: "Опционально", battery: "Аккумулятор", powerIncrease: "Услуга по увеличению мощности", pricePerKw: "Цена за киловатт с TVA",
@@ -155,19 +153,8 @@
         const station = t.stations[info.product] || t.stations.pv_bess;
         const voltLabel = info.voltage === "0.4" ? "0,4 kV" : `${info.voltage} kV`;
 
-        const tech = [];
-        if (info.pvKwp > 0 && info.product !== "bess") {
-            tech.push([t.pv, `${qtyFmt(info.pvKwp)} kWp`]);
-            if (info.panels) tech.push([t.panels, `${qtyFmt(info.panels)} ${unitLabel("buc", lang)}`]);
-            if (info.pvAnnualKwh) tech.push([t.yield, `≈ ${qtyFmt(info.pvAnnualKwh)} ${t.perYear}`]);
-        }
-        if (info.bessKwh > 0 && info.product !== "pv") {
-            tech.push([t.bess, `${qtyFmt(info.bessKwh)} kWh`]);
-            tech.push([t.pcs, `${qtyFmt(info.bessKw)} kW`]);
-            if (info.hours) tech.push([t.autonomy, `≈ ${qtyFmt(info.hours)} ${t.hours}`]);
-            const goal = meta.goal && GOALS[lang][meta.goal];
-            if (goal) tech.push([t.goal, goal]);
-        }
+        const roofType = meta.roofType ? (t.roofTypes[meta.roofType] || meta.roofType) : "";
+        const roofMaterial = meta.roofMaterial ? (t.roofMaterials[meta.roofMaterial] || meta.roofMaterial) : "";
         const line = (label, value) => `<div class="offer-info-line"><span>${esc(label)}</span><strong${ed}>${esc(value)}</strong></div>`;
 
         // Таблица: оборудование построчно, остальное группами
@@ -247,10 +234,8 @@
       ${line(t.place, meta.location || "—")}
       ${line(t.type, station)}
       ${line(t.voltage, voltLabel)}
-    </section>
-    <section class="offer-info-card">
-      <h3><span>⚙</span> ${esc(t.tech)}</h3>
-      ${tech.map(p => line(p[0], p[1])).join("") || line("—", "—")}
+      ${roofType ? line(t.roofType, roofType) : ""}
+      ${roofMaterial ? line(t.roofMaterial, roofMaterial) : ""}
     </section>
   </div>
   <div class="offer-table-wrap">
