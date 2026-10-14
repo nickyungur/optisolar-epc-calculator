@@ -258,7 +258,7 @@
         $("marginPill").className = "pill " + (m < 0 ? "bad" : m < 8 ? "warn" : "ok");
         const per = [];
         if (info.bessKwh > 0 && state.product !== "pv") per.push(`${fmt0(cv(result.commercialPrice / info.bessKwh))} ${c}/кВт·ч без TVA`);
-        if (info.pvKwp > 0 && state.product !== "bess") per.push(`${fmt0(cv(result.commercialPrice / info.pvKwp))} ${c}/кВтп без TVA (вся система)`);
+        if (info.pvKwp > 0 && state.product !== "bess") per.push(`${fmt0(cv(result.commercialPrice / info.pvKwp))} ${c}/кВтп без TVA (солнечная станция)`);
         $("perUnit").textContent = per.join(" · ");
         const pvPrice = $("pvKwPrice");
         if (info.pvKwp > 0 && state.product !== "bess") {
