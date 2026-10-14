@@ -116,17 +116,6 @@
         return meta.leadId ? `${base}-${meta.leadId}` : base;
     }
 
-    // Порядок оборудования в оффере: СЭС → BESS → СН. Первое совпадение задаёт место.
-    const EQ_ORDER = [
-        [/curent operativ|\brpa\b|protecție/i, 10], [/panou/i, 0], [/invertor/i, 1], [/structur|fixare|montare/i, 2],
-        [/container|bess|acumulator|dulap/i, 3], [/pcs|conversie|skid/i, 4], [/ems|controler|limitare/i, 5],
-        [/transformator de putere/i, 6], [/post de transformare|celule/i, 7], [/transformator de curent/i, 8], [/scada/i, 9]
-    ];
-    function eqRank(name) {
-        const hit = EQ_ORDER.find(([re]) => re.test(name || ""));
-        return hit ? hit[1] : 99;
-    }
-
     function unitLabel(u, lang) {
         if (lang === "ru") return ({ buc: "шт", set: "компл", lot: "компл", kWh: "кВт·ч", kWp: "кВтп", kW: "кВт", m: "м", ore: "ч" })[u] || u;
         return u;
@@ -192,7 +181,7 @@
             return `<tr>${cells.map(([cls, v]) => `<td${edc(cls)}>${esc(v)}</td>`).join("")}</tr>`;
         };
         const live = result.items.filter(i => Math.abs(i.totalSell) > 0.004);
-        const equipment = live.filter(i => i.category === "main-equipment").sort((a, b) => eqRank(a.name) - eqRank(b.name));
+        const equipment = live.filter(i => i.category === "main-equipment");
         let body = equipment.map(i => row(
             lang === "ru" ? i.nameRu || i.name : i.name,
             qtyFmt(i.quantity), unitLabel(i.unit || "buc", lang),
