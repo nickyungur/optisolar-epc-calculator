@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>OptiSolar · Калькулятор КП</title>
-<link rel="stylesheet" href="css/app.css?v=20261014-6">
+<link rel="stylesheet" href="css/app.css?v=20261014-9">
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 </head>
 <body>
@@ -68,6 +68,14 @@
             <button type="button" data-value="ground">На земле</button>
           </div>
         </div>
+      </div>
+      <div class="grid2" data-show="home-roof">
+        <div class="field"><label for="roofType">Форма крыши</label><select id="roofType">
+          <option value="">Выберите форму</option><option value="flat">Плоская</option><option value="mono">Односкатная</option><option value="gable">Двускатная</option><option value="hip">Вальмовая</option><option value="tent">Шатровая</option><option value="mansard">Мансардная</option><option value="arched">Арочная</option><option value="combined">Комбинированная</option><option value="other">Другая</option>
+        </select></div>
+        <div class="field"><label for="roofMaterial">Материал кровли</label><select id="roofMaterial">
+          <option value="">Выберите материал</option><option value="metal_tile">Металлочерепица</option><option value="sandwich">Сэндвич-панель</option><option value="profiled_sheet">Профнастил</option><option value="standing_seam">Фальцевая кровля</option><option value="ceramic_tile">Керамическая черепица</option><option value="concrete_tile">Цементно-песчаная черепица</option><option value="slate">Шифер</option><option value="bitumen_shingle">Битумная черепица</option><option value="membrane">Кровельная мембрана / рубероид</option><option value="concrete_slab">Бетонная плита</option><option value="other">Другой материал</option>
+        </select></div>
       </div>
       <div class="grid3">
         <div class="field"><label for="distanceKm">От Кишинёва, км</label><input id="distanceKm" inputmode="decimal" value="50"></div>
@@ -270,7 +278,7 @@
 <script src="js/logo.js"></script>
 <script src="js/ratebook.js"></script>
 <script src="js/generator.js?v=20261014-4"></script>
-<script src="js/offer.js?v=20261014-6"></script>
-<script src="js/main.js?v=20261014-6"></script>
+<script src="js/offer.js?v=20261014-9"></script>
+<script src="js/main.js?v=20261014-9"></script>
 </body>
 </html>
