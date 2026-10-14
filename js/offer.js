@@ -378,11 +378,18 @@
         return "downloaded";
     }
 
+    // Запущены ли из Telegram. Скрипт telegram-web-app.js создаёт window.Telegram.WebApp
+    // и в обычном браузере — там initData пустой, а platform = "unknown".
+    function inTelegram() {
+        const tg = window.Telegram && window.Telegram.WebApp;
+        return Boolean(tg && (tg.initData || (tg.platform && tg.platform !== "unknown")));
+    }
+
     async function deliver(blob, filename, mode = "download") {
-        const telegramWebApp = Boolean(window.Telegram && window.Telegram.WebApp);
-        // Telegram's iOS WebView treats an <a download> blob URL as a link to
-        // open, rather than as a file download. Use the native share sheet for
-        // both PDF actions there; never claim that a blob download succeeded.
+        const telegramWebApp = inTelegram();
+        // В Telegram ссылка <a download> на blob ничего не скачивает. Там файл
+        // отдаётся только через меню «Поделиться», если клиент его даёт;
+        // иначе — открыть калькулятор во внешнем браузере (main.js).
         const shouldShare = mode === "share" || telegramWebApp;
         if (shouldShare && typeof navigator.share === "function") {
             try {
@@ -402,5 +409,5 @@
         return download(blob, filename);
     }
 
-    window.EPC_OFFER = { render, toCanvas, pdfFromCanvas, a4Pages, pageImage, phoneSize, A4, deliver, offerNumber, money, powerTitle, GROUPS };
+    window.EPC_OFFER = { render, toCanvas, pdfFromCanvas, a4Pages, pageImage, phoneSize, A4, deliver, inTelegram, offerNumber, money, powerTitle, GROUPS };
 })();

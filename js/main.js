@@ -616,6 +616,7 @@
         $("previewModal").hidden = false;
         document.body.classList.add("no-scroll");
         showPreview(format);
+        prepareHandoff();
     }
 
     function closePreview() {
@@ -637,12 +638,119 @@
                 name = fileBase() + (preview.format === "a4" ? "_A4.pdf" : "_tel.pdf");
             }
             const how = await OFFER.deliver(blob, name, kind === "share" ? "share" : "download");
-            status.textContent = how === "shared" ? "PDF передан в меню «Поделиться». На iPhone выберите «Сохранить в Файлы» или Telegram." : how === "cancelled" ? "Отменено." : how === "telegram-unavailable" ? "Telegram не передал PDF в меню «Поделиться». Откройте приложение во внешнем браузере и скачайте PDF оттуда." : kind === "share" ? `PDF скачан (${name}). Прикрепите его в Telegram через скрепку.` : `Файл скачан: ${name}`;
+            status.textContent = how === "shared" ? "PDF передан в меню «Поделиться». На iPhone выберите Viber, WhatsApp или «Сохранить в Файлы»." : how === "cancelled" ? "Отменено." : how === "telegram-unavailable" ? `Telegram не даёт сохранить файл. Нажмите «${$("btnOpenBrowser").textContent}»: там этот же расчёт, PDF скачивается и отправляется.` : kind === "share" ? `PDF скачан (${name}). Прикрепите его в Telegram через скрепку.` : `Файл скачан: ${name}`;
             $("exportStatus").textContent = status.textContent;
         } catch (err) {
             console.error(err);
             status.textContent = "Не получилось: " + err.message;
         }
+    }
+
+    // ---------- Telegram: PDF через внешний браузер ----------
+    // В Telegram файл не скачивается, а «Поделиться» с файлом есть не во всех клиентах.
+    // Тогда калькулятор открывается в Safari/Chrome с этим же расчётом и оффером
+    // (с ручными правками). Всё лежит в адресе после «#» — на сервер это не уходит.
+    const IN_TG = OFFER.inTelegram();
+    const HANDOFF = "#open=";
+    let handoffPacked = null;
+
+    function b64url(bytes) {
+        let s = "";
+        for (let i = 0; i < bytes.length; i += 0x8000) s += String.fromCharCode.apply(null, bytes.subarray(i, i + 0x8000));
+        return btoa(s).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+    }
+    function unb64url(s) {
+        const bin = atob(s.replace(/-/g, "+").replace(/_/g, "/"));
+        return Uint8Array.from(bin, c => c.charCodeAt(0));
+    }
+    const pipe = (bytes, stream) => new Response(new Blob([bytes]).stream().pipeThrough(stream)).arrayBuffer().then(b => new Uint8Array(b));
+    async function pack(text) {
+        const bytes = new TextEncoder().encode(text);
+        if (typeof CompressionStream === "function") {
+            try { return "z." + b64url(await pipe(bytes, new CompressionStream("deflate-raw"))); } catch (_) { /* без сжатия */ }
+        }
+        return "j." + b64url(bytes);
+    }
+    async function unpack(packed) {
+        let bytes = unb64url(packed.slice(2));
+        if (packed[0] === "z") bytes = await pipe(bytes, new DecompressionStream("deflate-raw"));
+        return new TextDecoder().decode(bytes);
+    }
+
+    // Ссылку собираем заранее: openLink Telegram выполняет только сразу после нажатия.
+    function prepareHandoff() {
+        handoffPacked = null;
+        if (!IN_TG) return;
+        const doc = $("offerDoc").querySelector(".offer-document");
+        const offer = doc ? doc.cloneNode(true) : null;
+        if (offer) offer.querySelectorAll("img").forEach(img => img.removeAttribute("src")); // логотип есть и в браузере
+        const job = pack(JSON.stringify({ v: 1, state, rb: rbOverrides, offer: offer ? offer.outerHTML : "" }));
+        prepareHandoff.job = job;
+        job.then(p => { if (prepareHandoff.job === job) handoffPacked = p; })
+            .catch(err => { $("previewStatus").textContent = "Не получилось подготовить ссылку: " + err.message; });
+    }
+
+    function openInBrowser() {
+        const status = $("previewStatus");
+        if (!handoffPacked) { status.textContent = "Ещё готовлю ссылку — нажмите через секунду."; return; }
+        const url = location.origin + location.pathname + location.search + HANDOFF + preview.format + "." + handoffPacked;
+        try {
+            // try_browser — открыть именно Safari, а не встроенный браузер Telegram
+            tg.openLink(url, tg.platform === "ios" ? { try_browser: "safari" } : undefined);
+            status.textContent = "Открываю браузер с этим расчётом. Там нажмите «Поделиться PDF» или «Скачать PDF».";
+        } catch (err) {
+            status.textContent = "Не получилось открыть браузер: " + err.message;
+        }
+    }
+
+    // Принимаем оффер только из своих тегов и без атрибутов-скриптов: ссылку мог собрать кто угодно.
+    const OFFER_TAGS = new Set(["ARTICLE", "HEADER", "FOOTER", "SECTION", "DIV", "SPAN", "STRONG", "SMALL", "B", "I", "BR", "H1", "H3", "P", "OL", "LI", "IMG", "TABLE", "THEAD", "TBODY", "TR", "TH", "TD"]);
+    const OFFER_ATTRS = new Set(["class", "lang", "contenteditable", "alt", "aria-hidden"]);
+    function cleanOffer(html) {
+        const tpl = document.createElement("template");
+        tpl.innerHTML = html;
+        const root = tpl.content.firstElementChild;
+        if (!root || !root.classList.contains("offer-document")) return null;
+        root.querySelectorAll("*").forEach(el => {
+            const logo = el.tagName === "IMG" && /\boffer-(watermark|brand-logo)\b/.test(el.className);
+            if (!OFFER_TAGS.has(el.tagName) || (el.tagName === "IMG" && !logo)) { el.remove(); return; }
+            Array.from(el.attributes).forEach(a => { if (!OFFER_ATTRS.has(a.name)) el.removeAttribute(a.name); });
+            if (logo) el.setAttribute("src", LOGO);
+        });
+        Array.from(root.attributes).forEach(a => { if (!OFFER_ATTRS.has(a.name)) root.removeAttribute(a.name); });
+        return root;
+    }
+
+    async function takeHandoff() {
+        const m = location.hash.match(/^#open=(a4|mobile)\.([zj]\.[\w-]+)$/);
+        if (!m) return;
+        history.replaceState(null, "", location.pathname + location.search);
+        try {
+            const data = JSON.parse(await unpack(m[2]));
+            if (!data || data.v !== 1 || !data.state || typeof data.state !== "object") throw new Error("ссылка повреждена");
+            state = { ...defaults, ...data.state };
+            // ставки из Telegram — только на этот расчёт, базу ставок браузера не переписываем
+            if (data.rb && typeof data.rb === "object" && !Array.isArray(data.rb)) { rbOverrides = data.rb; applyRatebook(); }
+            fillForm();
+            recalc();
+            const offer = data.offer ? cleanOffer(data.offer) : null;
+            if (offer) $("offerDoc").replaceChildren(offer);
+            openPreview(m[1]);
+            $("previewStatus").textContent = "Расчёт из Telegram. «Поделиться PDF» → Viber, WhatsApp или «Сохранить в Файлы».";
+        } catch (err) {
+            console.error(err);
+            $("exportStatus").textContent = "Не удалось открыть расчёт из Telegram: " + err.message;
+        }
+    }
+
+    if (IN_TG) {
+        // «Скачать» и «Печать» в Telegram не работают — оставляем «Поделиться» и внешний браузер
+        $("btnPreviewPdf").hidden = true;
+        $("btnSharePdf").classList.add("primary");
+        $("btnOpenBrowser").hidden = false;
+        $("btnOpenBrowser").textContent = tg.platform === "ios" ? "Открыть в Safari" : "Открыть в браузере";
+        $("btnOpenBrowser").addEventListener("click", openInBrowser);
+        document.querySelectorAll('[data-export="print"]').forEach(b => { b.hidden = true; });
     }
 
     document.querySelectorAll("[data-preview]").forEach(b => b.addEventListener("click", () => openPreview(b.dataset.preview)));
@@ -848,4 +956,6 @@
     fillForm();
     recalc();
     syncTelegramControls();
+    takeHandoff();
+    window.addEventListener("hashchange", takeHandoff); // ссылка пришла во вкладку, где калькулятор уже открыт
 })();
