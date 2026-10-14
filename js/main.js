@@ -165,10 +165,11 @@
         const hasPv = state.product !== "bess";
         const hasBess = state.product !== "pv";
         const biz = state.segment === "biz";
+        const home = state.segment === "home";
         const mv = biz && state.voltage !== "0.4";
         document.querySelectorAll("[data-show]").forEach(el => {
             const k = el.dataset.show;
-            const show = k === "pv" ? hasPv : k === "bess" ? hasBess : k === "biz" ? biz : k === "mv" ? mv : k === "zero" ? (hasPv && !(biz && hasBess)) : true;
+            const show = k === "pv" ? hasPv : k === "inverter" ? (hasPv || (home && hasBess)) : k === "bess" ? hasBess : k === "bess-power" ? (hasBess && biz) : k === "biz" ? biz : k === "mv" ? mv : k === "zero" ? (hasPv && !(biz && hasBess)) : true;
             el.hidden = !show;
         });
     }
