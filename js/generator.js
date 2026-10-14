@@ -66,6 +66,7 @@
         const seg = input.segment === "home" ? "home" : "biz";
         const product = input.product || "pv_bess";
         const pvKwp = Math.max(0, Number(input.pvKwp) || 0);
+        const requestedInverterKw = Math.max(0, Number(input.inverterKw) || 0);
         const bessKw = Math.max(0, Number(input.bessKw) || 0);
         const bessKwh = Math.max(0, Number(input.bessKwh) || 0);
         const hasPv = product !== "bess" && pvKwp > 0;
@@ -155,7 +156,7 @@
             });
             info.panels = panels;
             info.pvAnnualKwh = Math.round(pvKwp * N.yieldKwhPerKwp);
-            pvAcKw = pvKwp / 1.15;
+            pvAcKw = requestedInverterKw || pvKwp / 1.15;
 
             if (seg === "home" && hasBess) {
                 const invKw = pickStd([3, 5, 6, 8, 10, 12, 15, 20, 25, 30, 50], Math.max(bessKw, pvAcKw));
