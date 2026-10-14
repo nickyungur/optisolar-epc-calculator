@@ -366,16 +366,7 @@
         return doc;
     }
 
-    async function deliver(blob, filename) {
-        const file = new File([blob], filename, { type: blob.type });
-        if (navigator.canShare && navigator.canShare({ files: [file] })) {
-            try {
-                await navigator.share({ files: [file], title: filename });
-                return "shared";
-            } catch (e) {
-                if (e && e.name === "AbortError") return "cancelled";
-            }
-        }
+    function download(blob, filename) {
         const url = URL.createObjectURL(blob);
         const a = document.createElement("a");
         a.href = url;
@@ -385,6 +376,21 @@
         a.remove();
         setTimeout(() => URL.revokeObjectURL(url), 60000);
         return "downloaded";
+    }
+
+    async function deliver(blob, filename, mode = "download") {
+        if (mode === "share" && typeof navigator.share === "function") {
+            try {
+                const file = new File([blob], filename, { type: blob.type || "application/pdf" });
+                if (navigator.canShare && navigator.canShare({ files: [file] })) {
+                    await navigator.share({ files: [file], title: filename });
+                    return "shared";
+                }
+            } catch (e) {
+                if (e && e.name === "AbortError") return "cancelled";
+            }
+        }
+        return download(blob, filename);
     }
 
     window.EPC_OFFER = { render, toCanvas, pdfFromCanvas, a4Pages, pageImage, phoneSize, A4, deliver, offerNumber, money, powerTitle, GROUPS };
