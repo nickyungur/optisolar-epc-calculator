@@ -383,7 +383,9 @@
             try {
                 const file = new File([blob], filename, { type: blob.type || "application/pdf" });
                 if (navigator.canShare && navigator.canShare({ files: [file] })) {
-                    await navigator.share({ files: [file], title: filename });
+                    // Отправляем только файл: на iOS Safari title может уйти
+                    // в Telegram как текстовое сообщение без вложения.
+                    await navigator.share({ files: [file] });
                     return "shared";
                 }
             } catch (e) {
