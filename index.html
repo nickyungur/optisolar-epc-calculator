@@ -44,7 +44,9 @@
       </div>
       <div class="sub">Мощность</div>
       <div class="grid3">
-        <div class="field" data-show="pv"><label for="pvKwp">СЭС, кВтп</label><input id="pvKwp" inputmode="decimal" value="0"></div>
+        <div class="field" data-show="pv"><label for="pvKwp">Мощность панелей, кВтп</label><input id="pvKwp" inputmode="decimal" value="0"></div>
+        <div class="field" data-show="pv"><label for="inverterKw">Мощность инвертора, кВт</label><input id="inverterKw" inputmode="decimal" value="0" placeholder="Авто по панелям"></div>
+        <div class="field" data-show="pv"><label for="pricePerKwp">Цена за кВтп, MDL без TVA</label><input id="pricePerKwp" inputmode="decimal" value="0" placeholder="По смете"></div>
         <div class="field" data-show="bess"><label for="bessKw">BESS, кВт</label><input id="bessKw" inputmode="decimal" value="500"></div>
         <div class="field" data-show="bess"><label for="bessKwh">BESS, кВт·ч</label><input id="bessKwh" inputmode="decimal" value="1000"></div>
       </div>
@@ -72,7 +74,7 @@
         <div class="field" data-show="mv"><label for="cableMvM">Линия СН, м</label><input id="cableMvM" inputmode="decimal" value="300"></div>
       </div>
       <label class="check" data-show="zero"><input type="checkbox" id="zeroExport"> Zero Export (без выдачи в сеть)</label>
-      <p class="note">Смена мощности, клиента, системы или напряжения пересобирает позиции и сбрасывает правки строк. Добавленные вручную позиции остаются.</p>
+      <p class="note">Инвертор: укажите фактическую мощность отдельно или оставьте 0 для подбора по мощности панелей. Цена за кВтп без TVA задаёт бюджет СЭС; строки сметы распределяются пропорционально текущим долям. Если цена 0, остаётся расчёт по ставкам. Смена мощности, клиента, системы или напряжения пересобирает позиции и сбрасывает правки строк. Добавленные вручную позиции остаются.</p>
     </div>
 
     <!-- ② КЛИЕНТ -->
@@ -172,6 +174,7 @@
           <div><span>Маржа</span><b id="sumMargin">—</b></div>
         </div>
         <div id="perUnit" class="per-unit"></div>
+        <div id="pvKwPrice" class="per-unit" hidden></div>
         <div class="hint" id="fxHint"></div>
         <ul id="warnings" class="warnings"></ul>
       </div>
@@ -265,8 +268,8 @@
 <script src="js/calculator.js"></script>
 <script src="js/logo.js"></script>
 <script src="js/ratebook.js"></script>
-<script src="js/generator.js"></script>
+<script src="js/generator.js?v=20261014-1"></script>
 <script src="js/offer.js?v=20261012-4"></script>
-<script src="js/main.js?v=20261012-4"></script>
+<script src="js/main.js?v=20261014-1"></script>
 </body>
 </html>
