@@ -212,7 +212,7 @@
     <div class="offer-brand-logo-wrap"><img class="offer-brand-logo" src="${logo}" alt="OPTISOLAR renewed energy"></div>
     <div class="offer-company-details">
       <div${ed}><span class="contact-symbol">⌖</span> ${esc(t.city)}</div>
-      <div${ed}><span class="contact-symbol">✉</span> office@optisolar.md</div>
+      <div${ed}><span class="contact-symbol">✉</span> Optisolar.Moldova@gmail.com</div>
       <div${ed}><span class="contact-symbol">◎</span> www.optisolar.md</div>
     </div>
   </header>
@@ -263,7 +263,7 @@
         ${line(t.name, manager)}
         ${line(t.role, role)}
         ${line(t.phone, meta.managerPhone || "—")}
-        ${line(t.email, "office@optisolar.md")}
+        ${line(t.email, "Optisolar.Moldova@gmail.com")}
       </section>
     </div>
     <div class="offer-signature">
