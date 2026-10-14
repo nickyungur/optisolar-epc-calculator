@@ -8,10 +8,13 @@
     const CALC = window.EPC_CALCULATOR;
     const GEN = window.EPC_GENERATOR;
     const OFFER = window.EPC_OFFER;
+    const SYNC = window.EPC_SYNC;
     const DEFAULT_RB = JSON.parse(JSON.stringify(window.RATEBOOK));
     const KEY_RB = "epc2_ratebook";
+    const KEY_RB_AT = "epc2_ratebook_at";           // когда правили ставки — для синхронизации
     const KEY_STATE = "epc2_state";
     const KEY_PROJECTS = "epc2_projects";
+    const KEY_PROJECTS_DEL = "epc2_projects_deleted"; // удалены без связи — убрать из облака
     const LOGO = window.OPTISOLAR_LOGO || "img/optisolar-logo.png";
     const headerLogo = document.querySelector(".bar-logo");
     if (headerLogo) headerLogo.src = LOGO;
@@ -119,7 +122,7 @@
         document.querySelectorAll(".tabpane").forEach(p => p.classList.toggle("active", p.id === "tab-" + btn.dataset.tab));
         syncTelegramControls(btn.dataset.tab);
         if (btn.dataset.tab === "rates") renderRates();
-        if (btn.dataset.tab === "projects") renderProjects();
+        if (btn.dataset.tab === "projects") { renderProjects(); syncNow(); }
     }));
 
     // ---------- чипы ----------
@@ -654,29 +657,6 @@
     const HANDOFF = "#open=";
     let handoffPacked = null;
 
-    function b64url(bytes) {
-        let s = "";
-        for (let i = 0; i < bytes.length; i += 0x8000) s += String.fromCharCode.apply(null, bytes.subarray(i, i + 0x8000));
-        return btoa(s).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
-    }
-    function unb64url(s) {
-        const bin = atob(s.replace(/-/g, "+").replace(/_/g, "/"));
-        return Uint8Array.from(bin, c => c.charCodeAt(0));
-    }
-    const pipe = (bytes, stream) => new Response(new Blob([bytes]).stream().pipeThrough(stream)).arrayBuffer().then(b => new Uint8Array(b));
-    async function pack(text) {
-        const bytes = new TextEncoder().encode(text);
-        if (typeof CompressionStream === "function") {
-            try { return "z." + b64url(await pipe(bytes, new CompressionStream("deflate-raw"))); } catch (_) { /* без сжатия */ }
-        }
-        return "j." + b64url(bytes);
-    }
-    async function unpack(packed) {
-        let bytes = unb64url(packed.slice(2));
-        if (packed[0] === "z") bytes = await pipe(bytes, new DecompressionStream("deflate-raw"));
-        return new TextDecoder().decode(bytes);
-    }
-
     // Ссылку собираем заранее: openLink Telegram выполняет только сразу после нажатия.
     function prepareHandoff() {
         handoffPacked = null;
@@ -684,7 +664,7 @@
         const doc = $("offerDoc").querySelector(".offer-document");
         const offer = doc ? doc.cloneNode(true) : null;
         if (offer) offer.querySelectorAll("img").forEach(img => img.removeAttribute("src")); // логотип есть и в браузере
-        const job = pack(JSON.stringify({ v: 1, state, rb: rbOverrides, offer: offer ? offer.outerHTML : "" }));
+        const job = SYNC.pack(JSON.stringify({ v: 1, state, rb: rbOverrides, offer: offer ? offer.outerHTML : "" }));
         prepareHandoff.job = job;
         job.then(p => { if (prepareHandoff.job === job) handoffPacked = p; })
             .catch(err => { $("previewStatus").textContent = "Не получилось подготовить ссылку: " + err.message; });
@@ -726,7 +706,7 @@
         if (!m) return;
         history.replaceState(null, "", location.pathname + location.search);
         try {
-            const data = JSON.parse(await unpack(m[2]));
+            const data = JSON.parse(await SYNC.unpack(m[2]));
             if (!data || data.v !== 1 || !data.state || typeof data.state !== "object") throw new Error("ссылка повреждена");
             state = { ...defaults, ...data.state };
             // ставки из Telegram — только на этот расчёт, базу ставок браузера не переписываем
@@ -801,13 +781,76 @@
     });
 
     // ---------- проекты ----------
+    // В Telegram проекты и правки ставок синхронизируются через облако аккаунта (sync.js),
+    // вне Telegram — только в этом браузере.
+    const CLOUD = SYNC.available();
+    const cloud = { busy: null, again: false, at: null, error: "" };
+
+    // Один проход синхронизации за раз; запрос во время прохода — ещё один проход после него.
+    function syncNow() {
+        if (!CLOUD) return Promise.resolve();
+        if (cloud.busy) { cloud.again = true; return cloud.busy; }
+        cloud.busy = (async () => {
+            renderSyncInfo("Синхронизация…");
+            const local = load(KEY_PROJECTS, []);
+            const deleted = load(KEY_PROJECTS_DEL, []);
+            const rbAt = Number(load(KEY_RB_AT, 0)) || (Object.keys(rbOverrides).length ? 1 : 0);
+            try {
+                const r = await SYNC.syncProjects(local, deleted);
+                // пока шла синхронизация, могли сохранить или удалить проект — не теряем это
+                const delNow = new Set(load(KEY_PROJECTS_DEL, []).filter(id => !deleted.includes(id)));
+                const fresh = load(KEY_PROJECTS, []).filter(p => !p.synced && !r.list.some(x => x.id === p.id));
+                save(KEY_PROJECTS, [...fresh, ...r.list].filter(p => !delNow.has(p.id)));
+                save(KEY_PROJECTS_DEL, [...delNow]);
+                const rr = await SYNC.syncRates(rbOverrides, rbAt);
+                if (rr.action === "upload") save(KEY_RB_AT, rr.at);
+                if (rr.action === "download" && (Number(load(KEY_RB_AT, 0)) || 0) <= rbAt) {
+                    if (rbAt === 1) save(KEY_RB + "_backup", rbOverrides); // свои правки до первой синхронизации — копия на всякий случай
+                    rbOverrides = rr.overrides;
+                    save(KEY_RB, rbOverrides);
+                    save(KEY_RB_AT, rr.at);
+                    applyRatebook();
+                    recalc();
+                    if ($("tab-rates").classList.contains("active")) renderRates();
+                }
+                cloud.at = new Date();
+                cloud.error = "";
+            } catch (err) {
+                console.error(err);
+                const sent = new Set(local.filter(p => p.synced).map(p => p.id)); // успели отправить до ошибки
+                save(KEY_PROJECTS, load(KEY_PROJECTS, []).map(p => sent.has(p.id) ? { ...p, synced: true } : p));
+                cloud.error = err.message || String(err);
+            } finally {
+                cloud.busy = null;
+            }
+            renderProjects();
+            if (cloud.again) { cloud.again = false; return syncNow(); }
+        })();
+        return cloud.busy;
+    }
+
+    function renderSyncInfo(text) {
+        if (!CLOUD) return;
+        const t = cloud.at ? cloud.at.toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit" }) : "";
+        $("syncInfo").textContent = text || (cloud.error
+            ? `Нет связи с облаком Telegram (${cloud.error}). Проекты сохранены на этом устройстве и уйдут в облако при следующей синхронизации.`
+            : cloud.at ? `Синхронизировано в ${t}.` : "");
+        $("syncInfo").classList.toggle("bad-text", !!cloud.error && !text);
+    }
+
     function saveProject() {
         const list = load(KEY_PROJECTS, []);
         const name = `${state.leadId || ""} ${state.client || "Без имени"} — ${last.info.title}`.trim();
         list.unshift({ id: Date.now(), savedAt: new Date().toISOString(), name, price: Math.round(last.result.priceWithVat), state: JSON.parse(JSON.stringify(state)) });
-        if (save(KEY_PROJECTS, list.slice(0, 100))) {
-            $("exportStatus").textContent = "Проект сохранён в этом браузере: " + name;
+        if (save(KEY_PROJECTS, CLOUD ? list : list.slice(0, 100))) {
+            $("exportStatus").textContent = CLOUD ? "Проект сохранён, отправляю в облако Telegram: " + name : "Проект сохранён в этом браузере: " + name;
             renderProjects();
+            syncNow().then(() => {
+                if (!CLOUD) return;
+                $("exportStatus").textContent = cloud.error
+                    ? `Проект сохранён на этом устройстве, в облако пока не ушёл (${cloud.error}). Уйдёт при следующей синхронизации.`
+                    : "Проект сохранён и виден на всех ваших устройствах в Telegram: " + name;
+            });
         } else {
             $("exportStatus").textContent = "Не удалось сохранить проект в этом браузере. Откройте приложение по опубликованной HTTPS-ссылке и проверьте, что хранилище браузера доступно.";
         }
@@ -819,9 +862,10 @@
         const list = load(KEY_PROJECTS, []);
         $("projectsList").innerHTML = list.length ? list.map(p => `
           <div class="proj" data-id="${p.id}">
-            <div><b>${escapeHtml(p.name)}</b><br><span class="hint">${new Date(p.savedAt).toLocaleString("ru-RU")} · ${fmt0(p.price)} MDL с TVA</span></div>
+            <div><b>${escapeHtml(p.name)}</b><br><span class="hint">${new Date(p.savedAt).toLocaleString("ru-RU")} · ${fmt0(p.price)} MDL с TVA${CLOUD && !p.synced ? " · пока только на этом устройстве" : ""}</span></div>
             <div class="buttons small"><button type="button" class="btn" data-act="open">Открыть</button><button type="button" class="btn" data-act="del">Удалить</button></div>
           </div>`).join("") : '<p class="hint">Пока пусто.</p>';
+        renderSyncInfo();
     }
     $("projectsList").addEventListener("click", e => {
         const btn = e.target.closest("button[data-act]");
@@ -835,12 +879,23 @@
             fillForm();
             recalc();
             document.querySelector('.tab[data-tab="calc"]').click();
-        } else if (confirm("Удалить проект из списка?")) {
+        } else if (confirm(CLOUD ? "Удалить проект? Он пропадёт на всех ваших устройствах." : "Удалить проект из списка?")) {
+            const p = list.find(x => x.id === id);
             list = list.filter(x => x.id !== id);
             save(KEY_PROJECTS, list);
+            if (CLOUD && p && p.synced) save(KEY_PROJECTS_DEL, [...load(KEY_PROJECTS_DEL, []), id]);
             renderProjects();
+            syncNow();
         }
     });
+
+    if (CLOUD) {
+        $("projectsHint").textContent = "Проекты и правки ставок хранятся в облаке вашего аккаунта Telegram и одинаковые на iPhone, Mac и Android.";
+        $("btnSync").hidden = false;
+        $("btnSync").addEventListener("click", () => syncNow());
+        // вернулись в приложение — подтянуть то, что сохранили на другом устройстве
+        document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible") syncNow(); });
+    }
 
     // calc-input.json для tools/calc.py
     $("btnExportInput").addEventListener("click", () => {
@@ -859,11 +914,20 @@
     });
 
     // ---------- ставки ----------
+    // Правка ставок помечается временем и через 1,5 с после последнего изменения уходит в облако.
+    function saveRates() {
+        save(KEY_RB, rbOverrides);
+        if (!CLOUD) return;
+        save(KEY_RB_AT, Date.now());
+        clearTimeout(saveRates.timer);
+        saveRates.timer = setTimeout(syncNow, 1500);
+    }
+
     function setOverride(path, value) {
         let o = rbOverrides;
         for (let i = 0; i < path.length - 1; i++) { o[path[i]] = o[path[i]] || {}; o = o[path[i]]; }
         o[path[path.length - 1]] = value;
-        save(KEY_RB, rbOverrides);
+        saveRates();
         applyRatebook();
         recalc();
     }
@@ -927,7 +991,7 @@
     $("btnRatesReset").addEventListener("click", () => {
         if (!confirm("Сбросить все ручные изменения ставок к базе?")) return;
         rbOverrides = {};
-        save(KEY_RB, rbOverrides);
+        saveRates();
         applyRatebook();
         recalc();
         renderRates();
@@ -943,7 +1007,7 @@
             const data = JSON.parse(await f.text());
             if (!data.rates || !data.fx) throw new Error("это не база ставок");
             rbOverrides = data;
-            save(KEY_RB, rbOverrides);
+            saveRates();
             applyRatebook();
             recalc();
             renderRates();
@@ -958,4 +1022,5 @@
     syncTelegramControls();
     takeHandoff();
     window.addEventListener("hashchange", takeHandoff); // ссылка пришла во вкладку, где калькулятор уже открыт
+    syncNow();
 })();

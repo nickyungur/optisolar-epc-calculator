@@ -104,6 +104,7 @@ textarea { font-family: ui-monospace, Menlo, monospace; font-size: 13px; }
 }
 .btn.primary { background: var(--primary); border-color: var(--primary); color: var(--primary-text); font-weight: 600; }
 .hint { color: var(--muted); font-size: 13px; margin: 8px 0 0; }
+.hint.bad-text { color: var(--danger); }
 
 
 /* ---------- Шаги ---------- */
