@@ -637,7 +637,7 @@
                 name = fileBase() + (preview.format === "a4" ? "_A4.pdf" : "_tel.pdf");
             }
             const how = await OFFER.deliver(blob, name, kind === "share" ? "share" : "download");
-            status.textContent = how === "shared" ? "Отправлено через «Поделиться»." : how === "cancelled" ? "Отменено." : `Файл сохранён: ${name}`;
+            status.textContent = how === "shared" ? "PDF передан в системное меню «Поделиться»." : how === "cancelled" ? "Отменено." : kind === "share" ? `PDF скачан (${name}). Прикрепите его в Telegram через скрепку.` : `Файл сохранён: ${name}`;
             $("exportStatus").textContent = status.textContent;
         } catch (err) {
             console.error(err);
