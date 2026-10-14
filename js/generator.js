@@ -67,8 +67,13 @@
         const product = input.product || "pv_bess";
         const pvKwp = Math.max(0, Number(input.pvKwp) || 0);
         const requestedInverterKw = Math.max(0, Number(input.inverterKw) || 0);
-        const bessKw = Math.max(0, Number(input.bessKw) || 0);
         const bessKwh = Math.max(0, Number(input.bessKwh) || 0);
+        const enteredBessKw = Math.max(0, Number(input.bessKw) || 0);
+        const homeInverterSizes = [3, 5, 6, 8, 10, 12, 15, 20, 25, 30, 50];
+        const homeAutoKw = Math.max(requestedInverterKw || bessKwh / 2, pvKwp > 0 ? (requestedInverterKw || pvKwp / 1.15) : 0);
+        const bessKw = seg === "home" && product !== "pv"
+            ? pickStd(homeInverterSizes, homeAutoKw)
+            : enteredBessKw;
         const hasPv = product !== "bess" && pvKwp > 0;
         const hasBess = product !== "pv" && bessKwh > 0 && bessKw > 0;
         let voltage = String(input.voltage || "0.4");
@@ -371,7 +376,7 @@
         info.segment = seg;
         info.product = product;
         info.pvKwp = pvKwp;
-        info.bessKw = bessKw;
+        info.bessKw = topology === "home" ? (info.inverterKw || bessKw) : bessKw;
         info.bessKwh = bessKwh;
         info.estShare = Math.round(estShare);
 
