@@ -74,7 +74,7 @@
     // ---------- состояние ----------
     const defaults = {
         segment: "biz", product: "bess", voltage: "0.4", mount: "roof", lang: "ro",
-        pvKwp: 0, inverterKw: 0, pricePerKwp: 0, bessKw: 500, bessKwh: 1000, distanceKm: 50, cableLvM: 50, cableMvM: 300, zeroExport: false,
+        pvKwp: 0, inverterKw: 0, pricePerKwp: 0, pricePerKwpCurrency: "MDL", bessKw: 500, bessKwh: 1000, distanceKm: 50, cableLvM: 50, cableMvM: 300, zeroExport: false,
         client: "", location: "", leadId: "", goal: "", validDays: 7, managerPhone: "",
         indirect: null, risk: null, vatEnabled: true, currency: "MDL",
         edits: {}, extra: []
@@ -149,10 +149,15 @@
     TEXT_FIELDS.forEach(id => $(id).addEventListener("input", () => { state[id] = $(id).value; persist(); renderOffer(); }));
     $("zeroExport").addEventListener("change", () => { state.zeroExport = $("zeroExport").checked; recalc(); });
     $("vatEnabled").addEventListener("change", () => { state.vatEnabled = $("vatEnabled").checked; recalc(); });
+    $("pricePerKwpCurrency").addEventListener("change", () => {
+        state.pricePerKwpCurrency = $("pricePerKwpCurrency").value === "EUR" ? "EUR" : "MDL";
+        recalc();
+    });
 
     function fillForm() {
         ["segment", "product", "voltage", "mount", "lang", "currency"].forEach(n => setChips(n, state[n]));
         NUM_FIELDS.forEach(id => { $(id).value = state[id] ?? ""; });
+        $("pricePerKwpCurrency").value = state.pricePerKwpCurrency || "MDL";
         TEXT_FIELDS.forEach(id => { $(id).value = state[id] ?? ""; });
         $("zeroExport").checked = !!state.zeroExport;
         $("vatEnabled").checked = state.vatEnabled !== false;
@@ -192,7 +197,7 @@
             return e ? { ...it, ...e, edited: true, _key: key } : { ...it, _key: key };
         }).filter(it => !it.removed);
         (state.extra || []).forEach(x => items.push({ ...x, edited: true, status: x.status || "opt" }));
-        const targetPrice = Number(state.pricePerKwp) || 0;
+        const targetPrice = (Number(state.pricePerKwp) || 0) * (state.pricePerKwpCurrency === "EUR" ? eurRate() : 1);
         if (targetPrice > 0 && state.product !== "bess" && gen.info.pvKwp > 0) {
             const currentSell = items.reduce((sum, item) => sum + item.quantity * item.cost * item.coefficient, 0);
             if (currentSell > 0) {
