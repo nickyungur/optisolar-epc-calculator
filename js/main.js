@@ -52,7 +52,11 @@
         }
     }
     function save(key, value) {
-        try { localStorage.setItem(key, JSON.stringify(value)); } catch (_) { /* приватный режим */ }
+        try {
+            const raw = JSON.stringify(value);
+            localStorage.setItem(key, raw);
+            return localStorage.getItem(key) === raw;
+        } catch (_) { return false; }
     }
 
     function deepMerge(base, over) {
@@ -632,7 +636,7 @@
                 blob = OFFER.pdfFromCanvas(preview.canvas, preview.format).output("blob");
                 name = fileBase() + (preview.format === "a4" ? "_A4.pdf" : "_tel.pdf");
             }
-            const how = await OFFER.deliver(blob, name);
+            const how = await OFFER.deliver(blob, name, kind === "share" ? "share" : "download");
             status.textContent = how === "shared" ? "Отправлено через «Поделиться»." : how === "cancelled" ? "Отменено." : `Файл сохранён: ${name}`;
             $("exportStatus").textContent = status.textContent;
         } catch (err) {
@@ -644,6 +648,7 @@
     document.querySelectorAll("[data-preview]").forEach(b => b.addEventListener("click", () => openPreview(b.dataset.preview)));
     document.querySelectorAll("[data-export]").forEach(b => b.addEventListener("click", () => { if (b.dataset.export === "print") window.print(); }));
     $("btnPreviewPdf").addEventListener("click", () => savePreview("pdf"));
+    $("btnSharePdf").addEventListener("click", () => savePreview("share"));
     $("btnPreviewPng").addEventListener("click", () => savePreview("png"));
     $("btnClosePreview").addEventListener("click", closePreview);
     $("previewModal").addEventListener("click", e => { if (e.target === $("previewModal")) closePreview(); });
@@ -692,8 +697,12 @@
         const list = load(KEY_PROJECTS, []);
         const name = `${state.leadId || ""} ${state.client || "Без имени"} — ${last.info.title}`.trim();
         list.unshift({ id: Date.now(), savedAt: new Date().toISOString(), name, price: Math.round(last.result.priceWithVat), state: JSON.parse(JSON.stringify(state)) });
-        save(KEY_PROJECTS, list.slice(0, 100));
-        $("exportStatus").textContent = "Проект сохранён: " + name;
+        if (save(KEY_PROJECTS, list.slice(0, 100))) {
+            $("exportStatus").textContent = "Проект сохранён в этом браузере: " + name;
+            renderProjects();
+        } else {
+            $("exportStatus").textContent = "Не удалось сохранить проект в этом браузере. Откройте приложение по опубликованной HTTPS-ссылке и проверьте, что хранилище браузера доступно.";
+        }
         if (tg?.HapticFeedback) { try { tg.HapticFeedback.notificationOccurred("success"); } catch (_) {} }
     }
     $("btnSave").addEventListener("click", saveProject);
