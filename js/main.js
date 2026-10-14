@@ -74,7 +74,7 @@
     // ---------- состояние ----------
     const defaults = {
         segment: "biz", product: "bess", voltage: "0.4", mount: "roof", lang: "ro",
-        pvKwp: 0, bessKw: 500, bessKwh: 1000, distanceKm: 50, cableLvM: 50, cableMvM: 300, zeroExport: false,
+        pvKwp: 0, inverterKw: 0, pricePerKwp: 0, bessKw: 500, bessKwh: 1000, distanceKm: 50, cableLvM: 50, cableMvM: 300, zeroExport: false,
         client: "", location: "", leadId: "", goal: "", validDays: 7, managerPhone: "",
         indirect: null, risk: null, vatEnabled: true, currency: "MDL",
         edits: {}, extra: []
@@ -135,14 +135,14 @@
     }));
 
     // ---------- поля ----------
-    const NUM_FIELDS = ["pvKwp", "bessKw", "bessKwh", "distanceKm", "cableLvM", "cableMvM", "validDays", "indirect", "risk"];
+    const NUM_FIELDS = ["pvKwp", "inverterKw", "pricePerKwp", "bessKw", "bessKwh", "distanceKm", "cableLvM", "cableMvM", "validDays", "indirect", "risk"];
     const TEXT_FIELDS = ["client", "location", "leadId", "goal", "managerPhone"];
     NUM_FIELDS.forEach(id => $(id).addEventListener("input", () => {
         const v = num($(id).value);
         $(id).classList.toggle("bad", $(id).value.trim() !== "" && Number.isNaN(v));
         if (!Number.isNaN(v)) {
             state[id] = v;
-            if (["pvKwp", "bessKw", "bessKwh"].includes(id)) state.edits = {};
+            if (["pvKwp", "inverterKw", "bessKw", "bessKwh"].includes(id)) state.edits = {};
             recalc();
         }
     }));
@@ -191,6 +191,14 @@
             return e ? { ...it, ...e, edited: true, _key: key } : { ...it, _key: key };
         }).filter(it => !it.removed);
         (state.extra || []).forEach(x => items.push({ ...x, edited: true, status: x.status || "opt" }));
+        const targetPrice = Number(state.pricePerKwp) || 0;
+        if (targetPrice > 0 && state.product !== "bess" && gen.info.pvKwp > 0) {
+            const currentSell = items.reduce((sum, item) => sum + item.quantity * item.cost * item.coefficient, 0);
+            if (currentSell > 0) {
+                const factor = targetPrice * gen.info.pvKwp / currentSell;
+                items.forEach(item => { item.coefficient *= factor; });
+            }
+        }
         return { gen, items };
     }
 
@@ -228,6 +236,18 @@
         if (info.bessKwh > 0 && state.product !== "pv") per.push(`${fmt0(cv(result.commercialPrice / info.bessKwh))} ${c}/кВт·ч без TVA`);
         if (info.pvKwp > 0 && state.product !== "bess") per.push(`${fmt0(cv(result.commercialPrice / info.pvKwp))} ${c}/кВтп без TVA (вся система)`);
         $("perUnit").textContent = per.join(" · ");
+        const pvPrice = $("pvKwPrice");
+        if (info.pvKwp > 0 && state.product !== "bess") {
+            const mdlNet = result.commercialPrice / info.pvKwp;
+            const mdlGross = result.priceWithVat / info.pvKwp;
+            const eurNet = mdlNet / eurRate();
+            const eurGross = mdlGross / eurRate();
+            pvPrice.hidden = false;
+            pvPrice.innerHTML = `<b>Цена за 1 кВтп (вся система):</b> MDL ${fmt0(mdlNet)} без TVA / ${fmt0(mdlGross)} с TVA · EUR ${fmt(eurNet)} без TVA / ${fmt(eurGross)} с TVA`;
+        } else {
+            pvPrice.hidden = true;
+            pvPrice.textContent = "";
+        }
         const w = gen.warnings.slice();
         if (Object.keys(state.edits).length || (state.extra || []).length) w.push("Есть ручные правки позиций.");
         $("warnings").innerHTML = w.map(x => `<li>${escapeHtml(x)}</li>`).join("");
