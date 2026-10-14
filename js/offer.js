@@ -29,6 +29,7 @@
             goal: "Destinație BESS",
             cols: ["Nr.", "Denumire", "Cantitate", "Unitate", "Preț unitar", "Valoare", "TVA %", "TVA", "Total cu TVA"],
             subtotal: "Total fără TVA", vat: "TVA totală", vatNa: "TVA (neaplicabilă)", total: "Total cu TVA", totalNoVat: "Total",
+            optional: "Opțional", battery: "Acumulator", powerIncrease: "Serviciu de majorare a puterii", pricePerKw: "Preț per kW cu TVA",
             note: "NOTĂ",
             n1: "Oferta comercială este valabilă timp de {days} zile calendaristice de la data emiterii.",
             n2: "Prețurile sunt exprimate în {cur}, {vat}.", vatIn: "cu TVA inclus", vatOut: "fără TVA",
@@ -54,6 +55,7 @@
             goal: "Назначение BESS",
             cols: ["№", "Наименование", "Кол-во", "Ед.", "Цена за ед.", "Сумма", "TVA %", "TVA", "Итого с TVA"],
             subtotal: "Итого без TVA", vat: "TVA", vatNa: "TVA (не применяется)", total: "Итого с TVA", totalNoVat: "Итого",
+            optional: "Опционально", battery: "Аккумулятор", powerIncrease: "Услуга по увеличению мощности", pricePerKw: "Цена за киловатт с TVA",
             note: "ПРИМЕЧАНИЕ",
             n1: "Предложение действует {days} календарных дней с даты выдачи.",
             n2: "Цены указаны в {cur}, {vat}.", vatIn: "с TVA", vatOut: "без TVA",
@@ -204,6 +206,18 @@
             const gross = its.reduce((s, i) => s + i.totalWithVat, 0);
             body += row(g[lang], "—", unitLabel("lot", lang), "—", m(net), net ? vat / net * 100 : 0, m(vat), m(gross));
         });
+        const optionalItems = result.optionalItems || [];
+        const batteryItems = optionalItems.filter(i => i._key !== "optional-power-increase");
+        const powerItem = optionalItems.find(i => i._key === "optional-power-increase");
+        const optionRow = (label, items) => {
+            if (!items.length) return "";
+            const net = items.reduce((s, i) => s + i.totalSell, 0);
+            const vat = items.reduce((s, i) => s + i.vatAmount, 0);
+            const gross = items.reduce((s, i) => s + i.totalWithVat, 0);
+            return row(`${t.optional}: ${label}`, "—", unitLabel("lot", lang), "—", m(net), net ? vat / net * 100 : 0, m(vat), m(gross));
+        };
+        body += optionRow(t.battery, batteryItems);
+        if (powerItem) body += optionRow(t.powerIncrease, [powerItem]);
         const head = t.cols.map((c, i) => `<th class="${["c-n", "c-name", "c-qty", "c-unit", "c-price", "c-net", "c-vatp", "c-vat", "c-total"][i]}">${esc(c)}</th>`).join("");
 
         const notes = [
@@ -261,6 +275,7 @@
       <div><span>${esc(t.subtotal)}</span><strong>${m(result.commercialPrice)} ${cur}</strong></div>
       <div><span>${esc(vatOn ? t.vat : t.vatNa)}</span><strong>${m(result.vatAmount)} ${cur}</strong></div>
       <div class="offer-summary-grand"><span>${esc(vatOn ? t.total : t.totalNoVat)}</span><strong>${m(result.priceWithVat)} ${cur}</strong></div>
+      ${info.pvKwp > 0 && info.product !== "bess" ? `<div class="offer-summary-perkw"><span>${esc(t.pricePerKw)}</span><strong>${m(result.priceWithVat / info.pvKwp)} ${cur}/kWp</strong></div>` : ""}
     </div>
   </div>
   <div class="offer-bottom-grid">
