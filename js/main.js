@@ -74,7 +74,7 @@
     // ---------- состояние ----------
     const defaults = {
         segment: "biz", product: "bess", voltage: "0.4", mount: "roof", lang: "ro",
-        pvKwp: 0, inverterKw: 0, pricePerKwp: 0, pricePerKwpCurrency: "MDL", bessKw: 500, bessKwh: 1000, distanceKm: 50, cableLvM: 50, cableMvM: 300, zeroExport: false,
+        pvKwp: 0, inverterKw: 0, pricePerKwp: 0, pricePerKwpCurrency: "MDL", powerIncreasePrice: 0, bessKw: 500, bessKwh: 1000, distanceKm: 50, cableLvM: 50, cableMvM: 300, zeroExport: false,
         client: "", location: "", leadId: "", goal: "", validDays: 7, managerPhone: "",
         indirect: null, risk: null, vatEnabled: true, currency: "MDL",
         edits: {}, extra: []
@@ -135,7 +135,7 @@
     }));
 
     // ---------- поля ----------
-    const NUM_FIELDS = ["pvKwp", "inverterKw", "pricePerKwp", "bessKw", "bessKwh", "distanceKm", "cableLvM", "cableMvM", "validDays", "indirect", "risk"];
+    const NUM_FIELDS = ["pvKwp", "inverterKw", "pricePerKwp", "powerIncreasePrice", "bessKw", "bessKwh", "distanceKm", "cableLvM", "cableMvM", "validDays", "indirect", "risk"];
     const TEXT_FIELDS = ["client", "location", "leadId", "goal", "managerPhone"];
     NUM_FIELDS.forEach(id => $(id).addEventListener("input", () => {
         const v = num($(id).value);
@@ -188,6 +188,10 @@
         return `${it.rateId || "x"}|${it.name}`;
     }
 
+    function isOptionalItem(it) {
+        return /^(bat_lv_kwh|ci_cabinet|container_kwh|pcs_kw|ems_ci|ac_dc_home_bess|home_bess_install|cabinet_install|bess_install_mwh|bess_comm_ci|grounding_cab|lv_cable_m|corrugated_90|fire_post|dc_cable_185|lug_185|small_mat_mwh|geodesy|site_m2|gravel_t|crane_h|crane_km|crane_cw|lowboy_km)$/.test(it.rateId || "") || /увеличени[ея] мощности|majorare.*putere/i.test(`${it.name || ""} ${it.nameRu || ""}`);
+    }
+
     function buildItems() {
         const gen = GEN.generate(state);
         // _key — ключ правки по исходному названию генератора: после переименования правки не теряются
@@ -197,14 +201,19 @@
             return e ? { ...it, ...e, edited: true, _key: key } : { ...it, _key: key };
         }).filter(it => !it.removed);
         (state.extra || []).forEach(x => items.push({ ...x, edited: true, status: x.status || "opt" }));
+        const coreItems = items.filter(it => !isOptionalItem(it));
         const targetPrice = (Number(state.pricePerKwp) || 0) * (state.pricePerKwpCurrency === "EUR" ? eurRate() : 1);
         if (targetPrice > 0 && state.product !== "bess" && gen.info.pvKwp > 0) {
-            const currentSell = items.reduce((sum, item) => sum + item.quantity * item.cost * item.coefficient, 0);
+            const currentSell = coreItems.reduce((sum, item) => sum + item.quantity * item.cost * item.coefficient, 0);
             if (currentSell > 0) {
                 const factor = targetPrice * gen.info.pvKwp / currentSell;
-                items.forEach(item => { item.coefficient *= factor; });
+                coreItems.forEach(item => { item.coefficient *= factor; });
             }
         }
+        items.forEach(it => { it.optional = isOptionalItem(it); });
+        const order = Array.isArray(state.itemOrder) ? state.itemOrder : [];
+        const rank = new Map(order.map((key, i) => [key, i]));
+        items.sort((a, b) => (rank.get(a.extraId || a._key || itemKey(a)) ?? 1e9) - (rank.get(b.extraId || b._key || itemKey(b)) ?? 1e9));
         return { gen, items };
     }
 
@@ -212,13 +221,22 @@
         updateVisibility();
         const { gen, items } = buildItems();
         const fin = window.RATEBOOK_ACTIVE.financial;
-        const result = CALC.calculateProject(items, {
+        const settings = {
             indirectPct: state.indirect ?? fin.indirect,
             riskPct: state.risk ?? fin.risk,
             vatEnabled: state.vatEnabled !== false,
             vatPct: window.RATEBOOK_ACTIVE.vatPct
-        });
-        last = { gen, items, result, info: gen.info };
+        };
+        const coreItems = items.filter(it => !it.optional);
+        const optionalItems = items.filter(it => it.optional);
+        if (gen.info.pvKwp > 0 && Number(state.powerIncreasePrice) > 0) {
+            const rate = Number(window.RATEBOOK_ACTIVE.vatPct) || 0;
+            const price = Number(state.powerIncreasePrice);
+            optionalItems.push({ name: "Услуга по увеличению мощности", nameRu: "Услуга по увеличению мощности", category: "grid", unit: "lot", quantity: 1, cost: price, coefficient: 1, vatPct: settings.vatEnabled ? rate : 0, status: "opt", _key: "optional-power-increase", optional: true });
+        }
+        const result = CALC.calculateProject(coreItems, settings);
+        const optionalResult = CALC.calculateProject(optionalItems, { ...settings, indirectPct: 0, riskPct: 0 });
+        last = { gen, items: [...result.items, ...optionalResult.items], optionalItems: optionalResult.items, result, info: gen.info };
         renderTotals();
         renderItems();
         renderOffer();
@@ -275,19 +293,22 @@
         const c = curName();
         const labels = window.RATEBOOK_ACTIVE.statusLabels;
         const byCat = {};
-        result.items.forEach((it, idx) => { (byCat[it.category] = byCat[it.category] || []).push({ it, idx }); });
-        const html = CAT_ORDER.filter(cat => byCat[cat]).map(cat => {
+        last.items.forEach((it, idx) => { const group = it.optional ? "optional" : it.category; (byCat[group] = byCat[group] || []).push({ it, idx }); });
+        const categories = [...CAT_ORDER.filter(cat => byCat[cat]), ...(byCat.optional ? ["optional"] : [])];
+        const html = categories.map(cat => {
             const rows = byCat[cat];
             const sum = rows.reduce((s, r) => s + r.it.totalSell, 0);
+            const title = cat === "optional" ? "Опционально" : CAT_RU[cat];
             return `<details class="grp" open>
-              <summary><span class="grp-name">${CAT_RU[cat]}</span><span class="grp-n">${rows.length}</span><b>${fmt0(cv(sum))} ${c}</b></summary>
+              <summary><span class="grp-name">${title}</span><span class="grp-n">${rows.length}</span><b>${fmt0(cv(sum))} ${c}</b></summary>
               ${rows.map(({ it, idx }) => {
                 const src = last.items[idx];
                 const st = it.status || "opt";
                 const tip = [labels[st] || "Вручную", it.src, it.date, state.lang === "ro" && it.nameRu && it.nameRu !== it.name ? "RU: " + it.nameRu : ""].filter(Boolean).join(" · ");
                 return `
-              <div class="irow st-${st}${it.edited ? " edited" : ""}" data-idx="${idx}">
+              <div class="irow st-${st}${it.edited ? " edited" : ""}" data-idx="${idx}" data-order-key="${escapeHtml(it.extraId || it._key || itemKey(it))}" draggable="true">
                 <div class="irow-top">
+                  <button type="button" class="drag-handle" title="Перетащить позицию" aria-label="Перетащить позицию">↕</button>
                   <textarea class="nm" data-f="name" rows="1" title="${escapeHtml(tip)}" aria-label="Название позиции">${escapeHtml(itemName(it))}</textarea>
                   <div class="isum">${fmt0(cv(it.totalSell))}<small>${result.vatEnabled ? (it.vatPct ? "с TVA " + fmt0(cv(it.totalWithVat)) : "без TVA") : ""}</small></div>
                   <button type="button" class="x" title="Убрать позицию">×</button>
@@ -305,6 +326,31 @@
         $("items").innerHTML = html || '<p class="hint">Нет позиций — задай мощность или ёмкость в шаге 1.</p>';
         $("items").querySelectorAll("textarea.nm").forEach(fitName);
     }
+
+    let draggedItem = null;
+    $("items").addEventListener("dragstart", e => {
+        const row = e.target.closest(".irow");
+        if (!row) return;
+        draggedItem = row.dataset.orderKey;
+        row.classList.add("dragging");
+        e.dataTransfer.effectAllowed = "move";
+        e.dataTransfer.setData("text/plain", draggedItem);
+    });
+    $("items").addEventListener("dragend", e => { e.target.closest(".irow")?.classList.remove("dragging"); draggedItem = null; });
+    $("items").addEventListener("dragover", e => { if (e.target.closest(".irow") && draggedItem) e.preventDefault(); });
+    $("items").addEventListener("drop", e => {
+        const target = e.target.closest(".irow");
+        if (!target || !draggedItem) return;
+        e.preventDefault();
+        const targetKey = target.dataset.orderKey;
+        if (targetKey === draggedItem) return;
+        const keys = last.items.map(it => it.extraId || it._key || itemKey(it));
+        const from = keys.indexOf(draggedItem), to = keys.indexOf(targetKey);
+        if (from < 0 || to < 0) return;
+        keys.splice(to, 0, keys.splice(from, 1)[0]);
+        state.itemOrder = keys;
+        recalc();
+    });
 
     // Поле названия растёт по тексту, чтобы длинное название было видно целиком
     function fitName(el) {
@@ -469,7 +515,7 @@
             .filter(i => !i.removed && i.unit === "buc" && (i.rateId === "pv_module_wp" || /^panou/i.test(i.name || "")))
             .reduce((s, i) => s + Number(i.quantity || 0), 0);
         return {
-            result: last.result,
+            result: { ...last.result, optionalItems: last.optionalItems },
             info: { ...last.info, panels: panels || last.info.panels },
             meta: {
                 client: state.client, location: state.location, leadId: state.leadId, goal: state.goal,
