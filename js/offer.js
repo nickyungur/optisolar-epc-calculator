@@ -379,7 +379,12 @@
     }
 
     async function deliver(blob, filename, mode = "download") {
-        if (mode === "share" && typeof navigator.share === "function") {
+        const telegramWebApp = Boolean(window.Telegram && window.Telegram.WebApp);
+        // Telegram's iOS WebView treats an <a download> blob URL as a link to
+        // open, rather than as a file download. Use the native share sheet for
+        // both PDF actions there; never claim that a blob download succeeded.
+        const shouldShare = mode === "share" || telegramWebApp;
+        if (shouldShare && typeof navigator.share === "function") {
             try {
                 const file = new File([blob], filename, { type: blob.type || "application/pdf" });
                 if (navigator.canShare && navigator.canShare({ files: [file] })) {
@@ -390,8 +395,10 @@
                 }
             } catch (e) {
                 if (e && e.name === "AbortError") return "cancelled";
+                if (telegramWebApp) return "telegram-unavailable";
             }
         }
+        if (telegramWebApp) return "telegram-unavailable";
         return download(blob, filename);
     }
 
