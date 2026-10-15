@@ -32,7 +32,8 @@
             note: "NOTĂ",
             n1: "Oferta comercială este valabilă timp de {days} zile calendaristice de la data emiterii.",
             n2: "Prețurile sunt exprimate în {cur}, {vat}.", vatIn: "cu TVA inclus", vatOut: "fără TVA",
-            nFx: "Curs BNM: 1 EUR = {fx} MDL ({date}).",
+            nFx: "Curs BNM: 1 EUR = {fx} MDL ({date}). Plata se efectuează în MDL la cursul oficial BNM din ziua plății.",
+            refs: "PROIECTE REALIZATE DE OPTISOLAR",
             n3: "Oferta include echipamentele, materialele și serviciile specificate în tabel.",
             n4: "Preț estimativ: valoarea exactă se confirmă după vizita tehnică la obiect.",
             n5: "Condițiile de plată, livrare și garanție se stabilesc separat în contract.",
@@ -57,7 +58,8 @@
             note: "ПРИМЕЧАНИЕ",
             n1: "Предложение действует {days} календарных дней с даты выдачи.",
             n2: "Цены указаны в {cur}, {vat}.", vatIn: "с TVA", vatOut: "без TVA",
-            nFx: "Курс BNM: 1 EUR = {fx} MDL ({date}).",
+            nFx: "Курс BNM: 1 EUR = {fx} MDL ({date}). Оплата в MDL по официальному курсу BNM на день оплаты.",
+            refs: "РЕАЛИЗОВАННЫЕ ОБЪЕКТЫ OPTISOLAR",
             n3: "В предложение входят оборудование, материалы и работы, указанные в таблице.",
             n4: "Цена ориентировочная: точная сумма — после технического выезда на объект.",
             n5: "Условия оплаты, поставки и гарантии — в договоре.",
@@ -119,10 +121,12 @@
         return u;
     }
 
-    function powerTitle(info) {
+    function powerTitle(info, meta = {}) {
         const parts = [];
         if (info.pvKwp > 0 && info.product !== "bess") {
-            parts.push(info.pvKwp >= 1000 ? `${qtyFmt(info.pvKwp / 1000)} MWp` : `${qtyFmt(info.pvKwp)} kWp`);
+            const dc = info.pvKwp >= 1000 ? `${qtyFmt(info.pvKwp / 1000)} MWp` : `${qtyFmt(info.pvKwp)} kWp`;
+            // Инвертор задан вручную — в заголовке DC и AC, как в КП конкурентов
+            parts.push(meta.acKw > 0 && info.product === "pv" ? `${dc} DC / ${qtyFmt(meta.acKw)} kW AC` : dc);
         }
         if (info.bessKwh > 0 && info.product !== "pv") {
             const kw = info.bessKw >= 1000 ? `${qtyFmt(info.bessKw / 1000)} MW` : `${qtyFmt(info.bessKw)} kW`;
@@ -218,7 +222,7 @@
   </header>
   <section class="offer-title-block">
     <div class="offer-kicker">${esc(t.kicker)}</div>
-    <h1${ed}>${esc(powerTitle(info))}</h1>
+    <h1${ed}>${esc(powerTitle(info, meta))}</h1>
     <p${ed}>${esc(station)} — ${esc(t.sub)}</p>
     <div class="offer-yellow-rule"></div>
   </section>
@@ -274,8 +278,25 @@
       <span${ed}>${esc(role)}</span>
     </div>
   </div>
+  ${referencesBlock(opts.references, lang, t, ed)}
   <footer class="offer-document-footer"><span>OPTISOLAR · renewed energy</span><span>www.optisolar.md</span></footer>
 </article>`;
+    }
+
+    // Проекты, реализованные OptiSolar (js/references.js): фото и название под подписью
+    function referencesBlock(ids, lang, t, ed) {
+        const all = Array.isArray(window.EPC_REFERENCES) ? window.EPC_REFERENCES : [];
+        const chosen = Array.isArray(ids) ? all.filter(r => ids.includes(r.id)) : [];
+        if (!chosen.length) return "";
+        return `<section class="offer-references">
+    <h3><span>★</span> ${esc(t.refs)}</h3>
+    <div class="offer-references-grid">${chosen.map(r => `
+      <div class="offer-reference">
+        <img class="offer-reference-img" data-ref="${esc(r.id)}" src="${esc(r.photo)}" alt="${esc(r.title)}">
+        <div class="offer-reference-cap"><strong${ed}>${esc(r.title)}</strong><span${ed}>${esc(r[lang] || r.ro || "")}</span></div>
+      </div>`).join("")}
+    </div>
+  </section>`;
     }
 
     // ---------- Экспорт ----------
@@ -293,7 +314,7 @@
             const root = host.firstElementChild;
             // Где можно разрезать лист: под строками таблицы и под блоками (в пикселях холста, scale 2)
             const top = root.getBoundingClientRect().top;
-            const breaks = Array.from(root.querySelectorAll("tr, .offer-brand-header, .offer-title-block, .offer-document-meta, .offer-info-grid, .offer-summary-wrap, .offer-note-card, .offer-contact-card, .offer-bottom-grid"))
+            const breaks = Array.from(root.querySelectorAll("tr, .offer-brand-header, .offer-title-block, .offer-document-meta, .offer-info-grid, .offer-summary-wrap, .offer-note-card, .offer-contact-card, .offer-bottom-grid, .offer-references"))
                 .map(el => Math.round((el.getBoundingClientRect().bottom - top) * 2))
                 .sort((a, b) => a - b);
             const canvas = await window.html2canvas(root, { scale: 2, backgroundColor: "#ffffff", useCORS: true, logging: false });

@@ -84,7 +84,9 @@
         pvKwp: 0, inverterKw: 0, pricePerKwp: 0, pricePerKwpCurrency: "MDL", powerIncreasePrice: 0, roofType: "", roofMaterial: "", bessKw: 500, bessKwh: 1000, distanceKm: 50, cableLvM: 50, cableMvM: 300, zeroExport: false,
         client: "", location: "", leadId: "", goal: "", validDays: 7, managerPhone: "",
         indirect: null, risk: null, vatEnabled: true, currency: "MDL",
-        edits: {}, extra: []
+        edits: {}, extra: [],
+        references: null,   // id объектов с фото в оффере (js/references.js); null — все
+        manual: false       // позиции импортированы из calc-input.json — генератор не добавляет свои
     };
     let state = { ...defaults, ...load(KEY_STATE, {}) };
     let last = null;
@@ -178,6 +180,7 @@
         const fin = window.RATEBOOK_ACTIVE.financial;
         if (state.indirect == null) $("indirect").value = fin.indirect;
         if (state.risk == null) $("risk").value = fin.risk;
+        renderRefsPick();
     }
 
     function updateVisibility() {
@@ -209,7 +212,7 @@
     function buildItems() {
         const gen = GEN.generate(state);
         // _key — ключ правки по исходному названию генератора: после переименования правки не теряются
-        const items = gen.items.map(it => {
+        const items = (state.manual ? [] : gen.items).map(it => {
             const key = itemKey(it);
             const e = state.edits[key];
             return e ? { ...it, ...e, edited: true, _key: key } : { ...it, _key: key };
@@ -432,7 +435,7 @@
         $("sumDetails").hidden = !$("sumDetails").hidden;
         renderTotals();
     });
-    $("btnResetItems").addEventListener("click", () => { state.edits = {}; state.extra = []; recalc(); });
+    $("btnResetItems").addEventListener("click", () => { state.edits = {}; state.extra = []; state.manual = false; recalc(); });
     // ---------- новая позиция: из ставок или своя ----------
     function rateLabel(r) {
         const p = r.price && typeof r.price === "object"
@@ -535,6 +538,7 @@
                 client: state.client, location: state.location, leadId: state.leadId, goal: state.goal,
                 validDays: state.validDays || 7, manager: "Nikita Ungureanu", managerRole: "Project Manager",
                 managerPhone: state.managerPhone,
+                acKw: Number(state.inverterKw) > 0 ? Number(state.inverterKw) : 0,
                 roofType: state.segment === "home" && state.product !== "bess" ? state.roofType : "",
                 roofMaterial: state.segment === "home" && state.product !== "bess" ? state.roofMaterial : ""
             }
@@ -543,8 +547,26 @@
 
     function offerOpts(extra) {
         const rb = window.RATEBOOK_ACTIVE;
-        return { lang: state.lang, logo: LOGO, currency: state.currency, fx: rb.fx.EUR, fxDate: rb.fx.date, ...extra };
+        return { lang: state.lang, logo: LOGO, currency: state.currency, fx: rb.fx.EUR, fxDate: rb.fx.date, references: chosenReferences(), ...extra };
     }
+
+    // ---------- реализованные объекты в оффере ----------
+    const REFERENCES = Array.isArray(window.EPC_REFERENCES) ? window.EPC_REFERENCES : [];
+    function chosenReferences() {
+        return Array.isArray(state.references) ? state.references : REFERENCES.map(r => r.id);
+    }
+    function renderRefsPick() {
+        const box = $("refsPick");
+        if (!box) return;
+        const on = chosenReferences();
+        box.innerHTML = REFERENCES.map(r => `<label><input type="checkbox" value="${escapeHtml(r.id)}"${on.includes(r.id) ? " checked" : ""}> ${escapeHtml(r.title)}</label>`).join("")
+            || '<span class="hint">Нет объектов в js/references.js</span>';
+    }
+    $("refsPick").addEventListener("change", () => {
+        state.references = Array.from($("refsPick").querySelectorAll("input:checked")).map(b => b.value);
+        persist();
+        renderOffer();
+    });
 
     // Оффер всегда виден в конце страницы и собирается заново при каждом пересчёте.
     function renderOffer() {
@@ -685,7 +707,7 @@
 
     // Принимаем оффер только из своих тегов и без атрибутов-скриптов: ссылку мог собрать кто угодно.
     const OFFER_TAGS = new Set(["ARTICLE", "HEADER", "FOOTER", "SECTION", "DIV", "SPAN", "STRONG", "SMALL", "B", "I", "BR", "H1", "H3", "P", "OL", "LI", "IMG", "TABLE", "THEAD", "TBODY", "TR", "TH", "TD"]);
-    const OFFER_ATTRS = new Set(["class", "lang", "contenteditable", "alt", "aria-hidden"]);
+    const OFFER_ATTRS = new Set(["class", "lang", "contenteditable", "alt", "aria-hidden", "data-ref"]);
     function cleanOffer(html) {
         const tpl = document.createElement("template");
         tpl.innerHTML = html;
@@ -693,9 +715,12 @@
         if (!root || !root.classList.contains("offer-document")) return null;
         root.querySelectorAll("*").forEach(el => {
             const logo = el.tagName === "IMG" && /\boffer-(watermark|brand-logo)\b/.test(el.className);
-            if (!OFFER_TAGS.has(el.tagName) || (el.tagName === "IMG" && !logo)) { el.remove(); return; }
+            // фото объекта — только из своего списка, адрес берём из js/references.js
+            const ref = el.tagName === "IMG" && el.classList.contains("offer-reference-img") ? REFERENCES.find(r => r.id === el.getAttribute("data-ref")) : null;
+            if (!OFFER_TAGS.has(el.tagName) || (el.tagName === "IMG" && !logo && !ref)) { el.remove(); return; }
             Array.from(el.attributes).forEach(a => { if (!OFFER_ATTRS.has(a.name)) el.removeAttribute(a.name); });
             if (logo) el.setAttribute("src", LOGO);
+            if (ref) el.setAttribute("src", ref.photo);
         });
         Array.from(root.attributes).forEach(a => { if (!OFFER_ATTRS.has(a.name)) root.removeAttribute(a.name); });
         return root;
@@ -1016,11 +1041,97 @@
         }
     });
 
+    // ---------- расчёт от Claude: calc-input.json (tools/calc.py) ----------
+    // Позиции берутся как есть (генератор выключен), цены — в MDL по курсу из ставок.
+    function importCalcInput(data) {
+        const inp = data && data.input && Array.isArray(data.input.items) ? data.input : data;
+        if (!inp || !Array.isArray(inp.items) || !inp.items.length) throw new Error("в расчёте нет позиций");
+        const st = String(inp.station || "solar-pv");
+        const product = st === "bess" ? "bess" : /bess/.test(st) ? "pv_bess" : "pv";
+        const tech = inp.technical || {};
+        const n = v => (v === null || v === undefined || v === "" ? 0 : Number(v) || 0);
+        const fin = inp.financial || {};
+        const k = inp.currency === "EUR" ? eurRate() : 1;
+        const extra = inp.items.map((it, i) => ({
+            extraId: "imp" + Date.now().toString(36) + i,
+            name: String(it.name || ""), nameRu: String(it.nameRu || it.name || ""),
+            category: CAT_RU[it.category] ? it.category : "materials",
+            unit: String(it.unit || "lot"),
+            quantity: n(it.quantity), cost: n(it.cost) * k,
+            coefficient: it.coefficient != null ? n(it.coefficient) : (n(fin.defaultCoefficient) || 1.2),
+            vatPct: it.vatPct != null ? n(it.vatPct) : (Number(window.RATEBOOK_ACTIVE.vatPct) || 20),
+            status: "opt", src: "Расчёт Claude (calc-input.json)"
+        }));
+        state = {
+            ...defaults,
+            lang: state.lang, managerPhone: state.managerPhone || (inp.contact && inp.contact.phone) || "",
+            segment: inp.segment === "home" ? "home" : "biz", product,
+            voltage: String(inp.voltage || "0.4"),
+            zeroExport: /zero/.test(st),
+            pvKwp: n(tech.pvPower), inverterKw: n(tech.inverterPower),
+            bessKwh: n(tech.bessCapacityKwh) || n(tech.bessCapacity) * 1000,
+            bessKw: n(tech.pcsPowerKw) || n(tech.pcsPower) * 1000,
+            client: inp.client || "", location: inp.location || "", leadId: inp.lead_id || "", goal: inp.goal || "",
+            indirect: fin.indirect != null ? n(fin.indirect) : null, risk: fin.risk != null ? n(fin.risk) : null,
+            vatEnabled: fin.vatEnabled !== false,
+            currency: inp.currency === "EUR" ? "EUR" : "MDL",
+            references: Array.isArray(inp.references) ? inp.references : null,
+            manual: true, edits: {}, extra, itemOrder: extra.map(x => x.extraId)
+        };
+        fillForm();
+        recalc();
+        document.querySelector('.tab[data-tab="calc"]').click();
+        return `${state.client || "Расчёт"} — ${last.info.title}`;
+    }
+
+    // Текст: JSON, ссылка/код #project=…, сжатый код z.… / j.… или base64url JSON
+    async function parseImport(text) {
+        let s = String(text || "").trim();
+        if (!s) throw new Error("пусто");
+        if (s[0] === "{") return JSON.parse(s);
+        const m = s.match(/#project=([\w.-]+)/);
+        if (m) s = m[1];
+        if (/^[zj]\.[\w-]+$/.test(s)) return JSON.parse(await SYNC.unpack(s));
+        const bin = atob(s.replace(/-/g, "+").replace(/_/g, "/"));
+        return JSON.parse(new TextDecoder().decode(Uint8Array.from(bin, c => c.charCodeAt(0))));
+    }
+
+    async function runImport(getText) {
+        const status = $("importStatus");
+        try {
+            const title = importCalcInput(await parseImport(await getText()));
+            status.textContent = "";
+            $("exportStatus").textContent = "Открыт расчёт: " + title + ". Проверьте позиции и нажмите «Сохранить проект».";
+            return true;
+        } catch (err) {
+            console.error(err);
+            status.textContent = "Не получилось открыть расчёт: " + err.message;
+            $("exportStatus").textContent = status.textContent;
+            return false;
+        }
+    }
+    $("btnImportText").addEventListener("click", async () => {
+        if (await runImport(() => $("importText").value)) $("importText").value = "";
+    });
+    $("importFile").addEventListener("change", async e => {
+        const file = e.target.files && e.target.files[0];
+        if (file) await runImport(() => file.text());
+        e.target.value = "";
+    });
+    async function takeProject() {
+        if (!/^#project=/.test(location.hash)) return;
+        const hash = location.hash;
+        history.replaceState(null, "", location.pathname + location.search);
+        await runImport(() => hash);
+    }
+
     // ---------- старт ----------
     fillForm();
     recalc();
     syncTelegramControls();
     takeHandoff();
+    takeProject();
     window.addEventListener("hashchange", takeHandoff); // ссылка пришла во вкладку, где калькулятор уже открыт
+    window.addEventListener("hashchange", takeProject);
     syncNow();
 })();

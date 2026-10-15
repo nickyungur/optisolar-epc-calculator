@@ -348,3 +348,21 @@ body.no-scroll { overflow: hidden; }
     .offer-editable:focus { outline: none !important; background: transparent !important; }
     tr, .offer-info-card, .offer-contact-card, .offer-note-card, .offer-summary { break-inside: avoid; }
 }
+
+/* Реализованные объекты (js/references.js): в оффере под подписью и выбор в шаге ④ */
+.offer-references { position: relative; z-index: 1; margin: 16px 0 0; border: 1px solid #e2e5e9; border-radius: 9px; overflow: hidden; background: #fff; }
+.offer-document .offer-references h3 { margin: 0; padding: 10px 14px; background: #f2f3f5; font-size: 13px; font-weight: 800; color: #3d424a; letter-spacing: .2px; }
+.offer-references h3 span { display: inline-block; width: 22px; color: #626975; font-size: 16px; }
+.offer-references-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; padding: 12px; }
+.offer-reference-img { display: block; width: 100%; aspect-ratio: 4 / 3; object-fit: cover; border-radius: 6px; background: #f2f3f5; }
+.offer-reference-cap { display: grid; gap: 1px; padding: 6px 2px 0; font-size: 12px; line-height: 1.3; }
+.offer-reference-cap span { color: #68707c; font-size: 11px; }
+.offer-narrow .offer-references-grid { grid-template-columns: 1fr; }
+@media (max-width: 560px) { .offer-document:not(.offer-a4) .offer-references-grid { grid-template-columns: 1fr; } }
+@media print { .offer-references { break-inside: avoid; } }
+.refs-pick { display: flex; flex-wrap: wrap; gap: 6px 16px; margin: 4px 0 10px; }
+.refs-pick label { display: inline-flex; align-items: center; gap: 6px; font-size: 14px; }
+
+/* Импорт расчёта (calc-input.json от Claude) во вкладке «Проекты» */
+.import-box textarea { width: 100%; min-height: 70px; font: 12px/1.35 ui-monospace, Menlo, monospace; }
+.import-box .buttons { margin-top: 8px; }
