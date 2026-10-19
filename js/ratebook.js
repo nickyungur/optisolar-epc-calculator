@@ -9,7 +9,7 @@
 // =========================================
 
 window.RATEBOOK = {
-    version: "2026-10-08",
+    version: "2026-10-19",
 
     fx: { EUR: 20.0228, USD: 17.8919, UAH: 0.3988, RON: 3.7407, MDL: 1, date: "08.10.2026", src: "BNM" },
     vatPct: 20,
@@ -143,3 +143,104 @@ window.RATEBOOK = {
         ecology:          { ru: "Экологическая экспертиза", ro: "Evaluare / aviz de mediu", cat: "grid", unit: "lot", price: 35000, cur: "MDL", vat: "incl", date: "2026", src: "Договор на экологию (BESS при СЭС 15 МВт)", status: "inv" }
     }
 };
+
+// =========================================
+// ОБОРУДОВАНИЕ ПО МОДЕЛЯМ — Huawei, Solis, Dyness (прайс дистрибьютора)
+// Цен в этом файле нет: репозиторий публичный. Цены загружаются один раз
+// файлом импорта («Ставки» → «Импорт») и хранятся в облаке Telegram (правки ставок).
+// Без цен модели в подбор не идут — позиции считаются по рыночным ставкам.
+// kind: inv — инвертор; bat — батарейный модуль; batpm — силовой модуль / блок управления;
+//       guard — блок резерва; acc — аксессуар (в авто-подборе только счётчик, логгер, донгл).
+// fam:  luna — Huawei + LUNA2000; lv — Solis LV + Dyness LV; hv — Solis HV + Dyness STACK280;
+//       grid — сетевой инвертор без батареи.
+// =========================================
+
+window.RATEBOOK.equipmentLevel = "angro";
+window.RATEBOOK.equipmentLevels = { angro: "Angro", installer: "Instalators", retail: "Retail" };
+window.RATEBOOK.equipmentSource = "";   // откуда цены — приходит с файлом импорта
+window.RATEBOOK.equipment = (function () {
+    // id, бренд, модель, kind, fam, фазы, кВт, кВт·ч, гарантия (лет)
+    const rows = [
+        ["hw-l1-5", "Huawei", "SUN2000-5KTL-L1", "inv", "luna", 1, 5, 0, 10],
+        ["hw-l1-6", "Huawei", "SUN2000-6KTL-L1", "inv", "luna", 1, 6, 0, 10],
+        ["hw-m1-5", "Huawei", "SUN2000-5KTL-M1", "inv", "luna", 3, 5, 0, 10],
+        ["hw-lc0-8", "Huawei", "SUN2000-8KTL-LC0", "inv", "luna", 1, 8, 0, 10],
+        ["hw-lc0-10", "Huawei", "SUN2000-10KTL-LC0", "inv", "luna", 1, 10, 0, 10],
+        ["hw-map0-8", "Huawei", "SUN2000-8KTL-MAP0", "inv", "luna", 3, 8, 0, 10],
+        ["hw-map0-10", "Huawei", "SUN2000-10KTL-MAP0", "inv", "luna", 3, 10, 0, 10],
+        ["hw-map0-12", "Huawei", "SUN2000-12KTL-MAP0", "inv", "luna", 3, 12, 0, 10],
+        ["hw-mb0-15", "Huawei", "SUN2000-15KTL-MB0", "inv", "luna", 3, 15, 0, 10],
+        ["hw-mb0-20", "Huawei", "SUN2000-20KTL-MB0", "inv", "luna", 3, 20, 0, 10],
+        ["hw-mb0-25", "Huawei", "SUN2000-25KTL-MB0", "inv", "luna", 3, 25, 0, 10],
+        ["hw-m3-30", "Huawei", "SUN2000-30KTL-M3", "inv", "grid", 3, 30, 0, 5],
+        ["hw-m3-40", "Huawei", "SUN2000-40KTL-M3", "inv", "grid", 3, 40, 0, 5],
+        ["hw-m3-50", "Huawei", "SUN2000-50KTL-M3", "inv", "grid", 3, 50, 0, 5],
+        ["hw-m2-100", "Huawei", "SUN2000-100KTL-M2", "inv", "grid", 3, 100, 0, 5],
+        ["hw-m2-115", "Huawei", "SUN2000-115KTL-M2", "inv", "grid", 3, 115, 0, 5],
+        ["hw-mg0-150", "Huawei", "SUN2000-150KTL-MG0", "inv", "grid", 3, 150, 0, 5],
+        ["hw-opt-600", "Huawei", "SUN2000-600W-P", "acc", "", 0, 0, 0, 2],
+        ["hw-opt-1300", "Huawei", "SUN2000-1300W-MERC", "acc", "", 0, 0, 0, 2],
+        ["hw-dongle", "Huawei", "SmartDongle WLAN-FE", "acc", "", 0, 0, 0, 2],
+        ["hw-dongle-4g", "Huawei", "SmartDongle 4G", "acc", "", 0, 0, 0, 2],
+        ["hw-meter", "Huawei", "Smart Power Sensor DTSU666-H", "acc", "", 3, 0, 0, 2],
+        ["hw-meter-hw", "Huawei", "Smart Power Sensor DTSU666-HW", "acc", "", 3, 0, 0, 2],
+        ["hw-logger", "Huawei", "SmartLogger3000A01EU", "acc", "", 0, 0, 0, 2],
+        ["hw-logger-a03", "Huawei", "SmartLogger3000A03EU", "acc", "", 0, 0, 0, 2],
+        ["hw-ev-22", "Huawei", "SCharger-22KT-S0", "acc", "", 3, 22, 0, 3],
+        ["hw-guard-1", "Huawei", "SmartGuard-63A-S0 with EMMA", "guard", "luna", 1, 0, 0, 10],
+        ["hw-guard-3", "Huawei", "SmartGuard-63A-T0 with EMMA", "guard", "luna", 3, 0, 0, 10],
+        ["hw-luna-pm", "Huawei", "LUNA2000-10KW-C1", "batpm", "luna", 0, 10, 0, 15],
+        ["hw-luna-7", "Huawei", "LUNA2000-7-E1", "bat", "luna", 0, 0, 7, 15],
+        ["solis-1p-6", "Solis", "S6-EH1P6K-L-PLUS", "inv", "lv", 1, 6, 0, 10],
+        ["solis-1p-8", "Solis", "S6-EH1P8K-L-PLUS", "inv", "lv", 1, 8, 0, 10],
+        ["solis-3p-8", "Solis", "S6-EH3P8K02-NV-YD-L", "inv", "lv", 3, 8, 0, 10],
+        ["solis-3p-10", "Solis", "S6-EH3P10K02-NV-YD-L", "inv", "lv", 3, 10, 0, 10],
+        ["solis-3p-12", "Solis", "S6-EH3P12K02-NV-YD-L", "inv", "lv", 3, 12, 0, 10],
+        ["solis-3p-15", "Solis", "S6-EH3P15K02-NV-YD-L", "inv", "lv", 3, 15, 0, 10],
+        ["solis-hv-20", "Solis", "S6-EH3P20K-HV", "inv", "hv", 3, 20, 0, 10],
+        ["solis-hv-30", "Solis", "S6-EH3P30K-HV", "inv", "hv", 3, 30, 0, 10],
+        ["solis-hv-50", "Solis", "S6-EH3P50K-HV", "inv", "hv", 3, 50, 0, 10],
+        ["dyness-5", "Dyness", "Power Depot G2", "bat", "lv", 0, 0, 5, 10],
+        ["dyness-10", "Dyness", "PowerBox G2", "bat", "lv", 0, 0, 10, 10],
+        ["dyness-16", "Dyness", "PowerBrick Plus", "bat", "lv", 0, 0, 16, 10],
+        ["dyness-stack", "Dyness", "STACK280", "bat", "hv", 0, 0, 14.33, 10],
+        ["dyness-sbdu", "Dyness", "SBDU 200", "batpm", "hv", 0, 0, 0, 10]
+    ];
+    const ph = (p, ro) => p === 1 ? (ro ? "monofazat" : "1 фаза") : (ro ? "trifazat" : "3 фазы");
+    const names = (r) => {
+        const [id, brand, model, kind, fam, phases, kw, kwh] = r;
+        const kwhRo = String(kwh).replace(".", ",");
+        if (kind === "inv" && fam === "grid") return [`Invertor on-grid ${brand} ${model} (${kw} kW, trifazat)`, `Сетевой инвертор ${brand} ${model} (${kw} кВт, 3 фазы)`];
+        if (kind === "inv") return [`Invertor hibrid ${brand} ${model} (${kw} kW, ${ph(phases, true)})`, `Гибридный инвертор ${brand} ${model} (${kw} кВт, ${ph(phases)})`];
+        if (kind === "bat" && fam === "luna") return [`Modul baterie ${brand} ${model} (${kwhRo} kWh, LiFePO4)`, `Батарейный модуль ${brand} ${model} (${kwhRo} кВт·ч, LiFePO4)`];
+        if (kind === "bat" && fam === "hv") return [`Modul baterie HV ${brand} ${model} (${kwhRo} kWh, LiFePO4)`, `Батарейный модуль HV ${brand} ${model} (${kwhRo} кВт·ч, LiFePO4)`];
+        if (kind === "bat") return [`Acumulator ${brand} ${model} ${kwhRo} kWh (LiFePO4, 48 V)`, `Аккумулятор ${brand} ${model} ${kwhRo} кВт·ч (LiFePO4, 48 В)`];
+        if (id === "hw-luna-pm") return [`Modul de putere ${brand} ${model} pentru baterie LUNA2000`, `Силовой модуль ${brand} ${model} для батареи LUNA2000`];
+        if (id === "dyness-sbdu") return [`Unitate de control baterii HV ${brand} ${model} (BMS)`, `Блок управления батареей HV ${brand} ${model} (BMS)`];
+        if (kind === "guard") return [`${brand} ${model.replace(" with ", " cu ")} (rezervă și management energetic, ${ph(phases, true)})`, `${brand} ${model.replace(" with ", " с ")} (резерв и управление энергией, ${ph(phases)})`];
+        const acc = {
+            "hw-opt-600": ["Optimizator", "Оптимизатор"], "hw-opt-1300": ["Optimizator", "Оптимизатор"],
+            "hw-dongle": ["Modul de monitorizare", "Модуль мониторинга"], "hw-dongle-4g": ["Modul de monitorizare 4G", "Модуль мониторинга 4G"],
+            "hw-meter": ["Contor inteligent (≤250 A)", "Смарт-счётчик (до 250 А)"], "hw-meter-hw": ["Contor inteligent (>250 A, cu TC)", "Смарт-счётчик (свыше 250 А, с ТТ)"],
+            "hw-logger": ["Sistem de monitorizare și control", "Система мониторинга и управления"], "hw-logger-a03": ["Sistem de monitorizare și control", "Система мониторинга и управления"],
+            "hw-ev-22": ["Stație de încărcare auto 22 kW", "Зарядная станция для электромобиля 22 кВт"]
+        }[id] || ["", ""];
+        return [`${acc[0]} ${brand} ${model}`.trim(), `${acc[1]} ${brand} ${model}`.trim()];
+    };
+    const out = {};
+    rows.forEach(r => {
+        const [id, brand, model, kind, fam, phases, kw, kwh, warranty] = r;
+        const [ro, ru] = names(r);
+        out[id] = {
+            brand, model, kind, fam, phases, kw, kwh, ro, ru, warranty,
+            price: { angro: null, installer: null, retail: null }, cur: "MDL", vat: "incl",
+            date: "10.2026", src: "Цена — из файла импорта", status: "opt"
+        };
+    });
+    // LUNA2000-7-E1: до 3 модулей в стойке; скидка за модуль в стойке (stackDiscount) — в файле импорта
+    out["hw-luna-7"].perStack = 3;
+    // STACK280: 3–15 модулей в стеке на один SBDU 200 (по магазинам, сверить с даташитом)
+    out["dyness-stack"].minPerStack = 3;
+    out["dyness-stack"].perStack = 15;
+    return out;
+})();

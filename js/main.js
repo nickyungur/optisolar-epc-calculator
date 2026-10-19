@@ -81,6 +81,7 @@
     // ---------- состояние ----------
     const defaults = {
         segment: "biz", product: "bess", voltage: "0.4", mount: "roof", lang: "ro",
+        phases: "3", eqBrand: "auto", eqInverter: "", eqBattery: "",   // подбор моделей из прайса (generator.js)
         pvKwp: 0, inverterKw: 0, pricePerKwp: 0, pricePerKwpCurrency: "MDL", powerIncreasePrice: 0, roofType: "", roofMaterial: "", bessKw: 500, bessKwh: 1000, distanceKm: 50, cableLvM: 50, cableMvM: 300, zeroExport: false,
         client: "", location: "", leadId: "", goal: "", validDays: 7, managerPhone: "",
         indirect: null, risk: null, vatEnabled: true, currency: "MDL",
@@ -140,6 +141,7 @@
         setChips(name, btn.dataset.value);
         if (name === "segment" && state.segment === "home") state.voltage = "0.4";
         if (["segment", "product", "voltage"].includes(name)) state.edits = {};
+        if (["segment", "product", "phases"].includes(name)) { state.eqInverter = ""; state.eqBattery = ""; }
         recalc();
     }));
 
@@ -157,6 +159,10 @@
     }));
     TEXT_FIELDS.forEach(id => $(id).addEventListener("input", () => { state[id] = $(id).value; persist(); renderOffer(); }));
     $("zeroExport").addEventListener("change", () => { state.zeroExport = $("zeroExport").checked; recalc(); });
+    // Оборудование: бренд сбрасывает выбор моделей; правки строк не сбрасываются
+    $("eqBrand").addEventListener("change", () => { state.eqBrand = $("eqBrand").value; state.eqInverter = ""; state.eqBattery = ""; recalc(); });
+    $("eqInverter").addEventListener("change", () => { state.eqInverter = $("eqInverter").value; recalc(); });
+    $("eqBattery").addEventListener("change", () => { state.eqBattery = $("eqBattery").value; recalc(); });
     $("vatEnabled").addEventListener("change", () => { state.vatEnabled = $("vatEnabled").checked; recalc(); });
     $("pricePerKwpCurrency").addEventListener("change", () => {
         state.pricePerKwpCurrency = $("pricePerKwpCurrency").value === "EUR" ? "EUR" : "MDL";
@@ -169,7 +175,8 @@
     }));
 
     function fillForm() {
-        ["segment", "product", "voltage", "mount", "lang", "currency"].forEach(n => setChips(n, state[n]));
+        ["segment", "product", "voltage", "mount", "lang", "currency", "phases"].forEach(n => setChips(n, state[n]));
+        $("eqBrand").value = state.eqBrand || "auto";
         NUM_FIELDS.forEach(id => { $(id).value = state[id] ?? ""; });
         $("roofType").value = state.roofType || "";
         $("roofMaterial").value = state.roofMaterial || "";
@@ -191,7 +198,7 @@
         const mv = biz && state.voltage !== "0.4";
         document.querySelectorAll("[data-show]").forEach(el => {
             const k = el.dataset.show;
-            const show = k === "pv" ? hasPv : k === "inverter" ? (hasPv || (home && hasBess)) : k === "bess" ? hasBess : k === "bess-power" ? (hasBess && biz) : k === "biz" ? biz : k === "mv" ? mv : k === "zero" ? (hasPv && !(biz && hasBess)) : k === "home-roof" ? (home && hasPv) : true;
+            const show = k === "equip" ? !state.manual : k === "home" ? home : k === "pv" ? hasPv : k === "inverter" ? (hasPv || (home && hasBess)) : k === "bess" ? hasBess : k === "bess-power" ? (hasBess && biz) : k === "biz" ? biz : k === "mv" ? mv : k === "zero" ? (hasPv && !(biz && hasBess)) : k === "home-roof" ? (home && hasPv) : true;
             el.hidden = !show;
         });
     }
@@ -205,9 +212,21 @@
         return `${it.rateId || "x"}|${it.name}`;
     }
 
+    // Опция ниже итога — только услуга увеличения мощности. Аккумулятор с 2026-10-19 — блок B оффера
+    // со своим итогом и ценой за кВт·ч и кВт (запрос пользователя), у дома и у бизнеса.
     function isOptionalItem(it) {
-        return /^(bat_lv_kwh|ci_cabinet|container_kwh|pcs_kw|ems_ci|ac_dc_home_bess|home_bess_install|cabinet_install|bess_install_mwh|bess_comm_ci|grounding_cab|lv_cable_m|corrugated_90|fire_post|dc_cable_185|lug_185|small_mat_mwh|geodesy|site_m2|gravel_t|crane_h|crane_km|crane_cw|lowboy_km)$/.test(it.rateId || "") || /увеличени[ея] мощности|majorare.*putere/i.test(`${it.name || ""} ${it.nameRu || ""}`);
+        return /увеличени[ея] мощности|majorare.*putere/i.test(`${it.name || ""} ${it.nameRu || ""}`);
     }
+
+    // Два блока (СЭС и аккумулятор), если в расчёте есть позиции обоих
+    function hasTwoBlocks(items) {
+        return items.some(i => i.section === "pv" && !i.optional) && items.some(i => i.section === "bess" && !i.optional);
+    }
+    function blockSums(items, section) {
+        const its = items.filter(i => i.section === section && !i.optional);
+        return { net: its.reduce((s, i) => s + i.totalSell, 0), gross: its.reduce((s, i) => s + i.totalWithVat, 0) };
+    }
+    const bessBlockName = () => state.segment === "home" ? "Аккумулятор" : "BESS";
 
     function buildItems() {
         const gen = GEN.generate(state);
@@ -218,7 +237,8 @@
             return e ? { ...it, ...e, edited: true, _key: key } : { ...it, _key: key };
         }).filter(it => !it.removed);
         (state.extra || []).forEach(x => items.push({ ...x, edited: true, status: x.status || "opt" }));
-        const coreItems = items.filter(it => !isOptionalItem(it));
+        // бюджет «цена за кВтп» — только на позиции СЭС; блок аккумулятора не масштабируется
+        const coreItems = items.filter(it => !isOptionalItem(it) && it.section !== "bess");
         const targetPrice = (Number(state.pricePerKwp) || 0) * (state.pricePerKwpCurrency === "EUR" ? eurRate() : 1);
         if (targetPrice > 0 && state.product !== "bess" && gen.info.pvKwp > 0) {
             const currentSell = coreItems.reduce((sum, item) => sum + item.quantity * item.cost * item.coefficient, 0);
@@ -255,6 +275,7 @@
         const optionalResult = CALC.calculateProject(optionalItems, { ...settings, indirectPct: 0, riskPct: 0 });
         last = { gen, items: [...result.items, ...optionalResult.items], optionalItems: optionalResult.items, result, info: gen.info };
         renderTotals();
+        renderEquip();
         renderItems();
         renderOffer();
         persist();
@@ -274,11 +295,28 @@
         $("marginPill").textContent = "маржа " + m.toFixed(1).replace(".", ",") + "%";
         $("marginPill").className = "pill " + (m < 0 ? "bad" : m < 8 ? "warn" : "ok");
         const per = [];
-        if (info.bessKwh > 0 && state.product !== "pv") per.push(`${fmt0(cv(result.commercialPrice / info.bessKwh))} ${c}/кВт·ч без TVA`);
-        if (info.pvKwp > 0 && state.product !== "bess") per.push(`${fmt0(cv(result.commercialPrice / info.pvKwp))} ${c}/кВтп без TVA (солнечная станция)`);
+        const two = hasTwoBlocks(last.items);
+        if (two) {
+            const pv = blockSums(result.items, "pv"), bs = blockSums(result.items, "bess");
+            per.push(`A · СЭС: ${fmt0(cv(pv.gross))} ${c} с TVA`, `B · ${bessBlockName()}: ${fmt0(cv(bs.gross))} ${c} с TVA`);
+        } else {
+            if (info.bessKwh > 0 && state.product !== "pv") per.push(`${fmt0(cv(result.commercialPrice / info.bessKwh))} ${c}/кВт·ч без TVA`);
+            if (info.pvKwp > 0 && state.product !== "bess") per.push(`${fmt0(cv(result.commercialPrice / info.pvKwp))} ${c}/кВтп без TVA (солнечная станция)`);
+        }
         $("perUnit").textContent = per.join(" · ");
         const pvPrice = $("pvKwPrice");
-        if (info.pvKwp > 0 && state.product !== "bess") {
+        if (two) {
+            // цена за единицу — отдельно по блокам, как в оффере
+            const pv = blockSums(result.items, "pv"), bs = blockSums(result.items, "bess");
+            const line = (label, s, per, unit) => per > 0
+                ? `${label}: ${fmt0(cv(s.net / per))} ${c}/${unit} без TVA / ${fmt0(cv(s.gross / per))} ${c}/${unit} с TVA` : "";
+            pvPrice.hidden = false;
+            pvPrice.innerHTML = [
+                line("<b>A · СЭС, за 1 кВтп</b>", pv, info.pvKwp, "кВтп"),
+                line(`<b>B · ${bessBlockName()}, за 1 кВт·ч</b>`, bs, info.bessKwh, "кВт·ч"),
+                line(`<b>B · ${bessBlockName()}, за 1 кВт</b>`, bs, info.bessKw, "кВт")
+            ].filter(Boolean).join("<br>");
+        } else if (info.pvKwp > 0 && state.product !== "bess") {
             const mdlNet = result.commercialPrice / info.pvKwp;
             const mdlGross = result.priceWithVat / info.pvKwp;
             const eurNet = mdlNet / eurRate();
@@ -296,6 +334,41 @@
         $("btnDetails").textContent = (w.length ? `⚠ ${w.length} · ` : "") + (open ? "Свернуть ▾" : "Подробнее ▴");
     }
 
+    // ---------- оборудование по моделям ----------
+    function renderEquip() {
+        const eq = last.info.equip || {};
+        // модель, выбранная для другого расчёта (бренд, фазы, семейство), не применилась — сбрасываем выбор
+        if (eq.ignoredInv) state.eqInverter = "";
+        if (eq.ignoredBat) state.eqBattery = "";
+        const fill = (id, list, value, autoText) => {
+            const opts = list.slice();
+            // выбранная вручную модель остаётся в списке, даже если по мощности уже не подходит
+            if (value && value !== "cabinet" && !opts.some(o => o.id === value)) {
+                const e = GEN.eqGet(value);
+                if (e) opts.unshift({ id: value, label: `${e.brand} ${e.model} · ${e.kw || e.kwh} ${e.kw ? "кВт" : "кВт·ч"}` });
+            }
+            $(id).innerHTML = `<option value="">${escapeHtml(autoText)}</option>` +
+                opts.map(o => `<option value="${escapeHtml(o.id)}">${escapeHtml(o.label)}</option>`).join("");
+            $(id).value = opts.some(o => o.id === value) ? value : "";
+        };
+        const market = state.eqBrand === "market";
+        fill("eqInverter", market ? [] : eq.invOptions || [], state.eqInverter,
+            eq.inverter ? `Авто: ${eq.inverter}` : "Авто: рыночная ставка");
+        fill("eqBattery", market ? [] : eq.batOptions || [], state.eqBattery,
+            eq.battery ? `Авто: ${eq.battery}` : "Авто: рыночная ставка");
+        $("eqInverterBox").hidden = market || !(eq.inverter || (eq.invOptions || []).length);
+        $("eqBatteryBox").hidden = market || !(eq.battery || (eq.batOptions || []).length);
+        const parts = [];
+        if (eq.inverter) parts.push(`инвертор ${eq.inverter}`);
+        if (eq.pvInverter) parts.push(`СЭС ${eq.pvInverter}`);
+        if (eq.battery) parts.push(`батарея ${eq.battery}`);
+        $("eqHint").textContent = !eq.pricesLoaded
+            ? "Цены моделей не загружены — позиции по рыночным ставкам. Загрузить: «Ставки» → «Импорт», файл цен оборудования."
+            : parts.length
+                ? `Подобрано: ${parts.join(" · ")}. ${eq.source}, уровень ${eq.level}.`
+                : "Модели не подобраны — позиции по рыночным ставкам.";
+    }
+
     function escapeHtml(v) {
         return String(v ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
     }
@@ -310,12 +383,17 @@
         const c = curName();
         const labels = window.RATEBOOK_ACTIVE.statusLabels;
         const byCat = {};
-        last.items.forEach((it, idx) => { const group = it.optional ? "optional" : it.category; (byCat[group] = byCat[group] || []).push({ it, idx }); });
-        const categories = [...CAT_ORDER.filter(cat => byCat[cat]), ...(byCat.optional ? ["optional"] : [])];
+        // при двух блоках позиции аккумулятора — отдельными группами «Аккумулятор · …» (блок B оффера)
+        const two = hasTwoBlocks(last.items);
+        last.items.forEach((it, idx) => {
+            const group = it.optional ? "optional" : (two && it.section === "bess" ? "bess|" : "") + it.category;
+            (byCat[group] = byCat[group] || []).push({ it, idx });
+        });
+        const categories = [...CAT_ORDER.filter(cat => byCat[cat]), ...CAT_ORDER.map(cat => "bess|" + cat).filter(cat => byCat[cat]), ...(byCat.optional ? ["optional"] : [])];
         const html = categories.map(cat => {
             const rows = byCat[cat];
             const sum = rows.reduce((s, r) => s + r.it.totalSell, 0);
-            const title = cat === "optional" ? "Опционально" : CAT_RU[cat];
+            const title = cat === "optional" ? "Опционально" : cat.startsWith("bess|") ? `${bessBlockName()} · ${CAT_RU[cat.slice(5)]}` : (two ? "СЭС · " : "") + CAT_RU[cat];
             return `<details class="grp" open>
               <summary><span class="grp-name">${title}</span><span class="grp-n">${rows.length}</span><b>${fmt0(cv(sum))} ${c}</b></summary>
               ${rows.map(({ it, idx }) => {
@@ -444,11 +522,26 @@
         return `${r.ru} — ${p}`;
     }
 
+    // Ставка или модель из прайса (значение «eq:<id>»)
+    function refById(id) {
+        if (!id) return null;
+        if (id.startsWith("eq:")) {
+            const e = GEN.eqGet(id.slice(3));
+            return e ? { ru: e.ru, ro: e.ro, cat: "main-equipment", unit: "buc", status: e.status || "opt", src: e.src, date: e.date, eq: e } : null;
+        }
+        return window.RATEBOOK_ACTIVE.rates[id] || null;
+    }
+
     function openAddPanel() {
         const rb = window.RATEBOOK_ACTIVE;
         const groups = {};
         Object.entries(rb.rates).forEach(([id, r]) => { (groups[r.cat] = groups[r.cat] || []).push([id, r]); });
-        $("addRate").innerHTML = '<option value="">— своя позиция —</option>' + CAT_ORDER.filter(c => groups[c]).map(c =>
+        const brands = {};
+        GEN.eqAll().filter(e => GEN.eqNet(e) > 0).forEach(e => { (brands[e.brand] = brands[e.brand] || []).push(e); });
+        $("addRate").innerHTML = '<option value="">— своя позиция —</option>' +
+            Object.keys(brands).map(b => `<optgroup label="${escapeHtml(b)} — прайс">${brands[b].map(e =>
+                `<option value="eq:${escapeHtml(e.id)}">${escapeHtml(`${e.ru} — ${fmt0(cv(GEN.eqNet(e)))} ${curName()} без TVA`)}</option>`).join("")}</optgroup>`).join("") +
+            CAT_ORDER.filter(c => groups[c]).map(c =>
             `<optgroup label="${CAT_RU[c]}">${groups[c].map(([id, r]) => `<option value="${id}">${escapeHtml(rateLabel(r))}</option>`).join("")}</optgroup>`).join("");
         $("addCat").innerHTML = CAT_ORDER.map(c => `<option value="${c}">${CAT_RU[c]}</option>`).join("");
         $("addCat").value = "materials";
@@ -458,6 +551,8 @@
         $("addQty").value = "1";
         $("addUnit").value = "buc";
         $("addKwBox").hidden = true;
+        $("addSectionBox").hidden = state.product !== "pv_bess";
+        $("addSection").value = "pv";
         $("addHint").textContent = "Выбери ставку — название, раздел, единица и цена подставятся. Или заполни свою позицию.";
         $("addPanel").hidden = false;
         $("addRate").focus();
@@ -466,6 +561,8 @@
     function addRateCost() {
         const id = $("addRate").value;
         if (!id) return;
+        const ref = refById(id);
+        if (ref && ref.eq) { $("addCost").value = Math.round(cv(GEN.eqNet(ref.eq)) * 100) / 100; return; }
         const r = window.RATEBOOK_ACTIVE.rates[id];
         const obj = r.price && typeof r.price === "object";
         const kw = num($("addKw").value);
@@ -480,7 +577,17 @@
             $("addHint").textContent = "Своя позиция: название, раздел, единица и цена — вручную.";
             return;
         }
-        const r = rb.rates[id];
+        const r = refById(id);
+        if (r.eq) {
+            if (["bat", "batpm", "guard"].includes(r.eq.kind)) $("addSection").value = "bess";
+            $("addName").value = state.lang === "ru" ? r.ru : r.ro;
+            $("addCat").value = r.cat;
+            $("addUnit").value = r.unit;
+            $("addKwBox").hidden = true;
+            addRateCost();
+            $("addHint").textContent = `${rb.statusLabels[r.status] || ""} · ${r.src} · уровень ${(rb.equipmentLevels || {})[rb.equipmentLevel] || ""} · в прайсе MDL с TVA, здесь — ${curName()} без TVA.`;
+            return;
+        }
         const obj = r.price && typeof r.price === "object";
         $("addName").value = state.lang === "ru" ? r.ru : r.ro;
         $("addCat").value = r.cat;
@@ -499,7 +606,7 @@
     $("btnAddCancel").addEventListener("click", () => { $("addPanel").hidden = true; });
     $("btnAddConfirm").addEventListener("click", () => {
         const id = $("addRate").value;
-        const r = id ? window.RATEBOOK_ACTIVE.rates[id] : null;
+        const r = refById(id);
         const name = $("addName").value.trim();
         const qty = num($("addQty").value);
         let cost = num($("addCost").value);
@@ -519,6 +626,7 @@
             unit: $("addUnit").value.trim() || "buc", quantity: qty, cost,
             coefficient: window.RATEBOOK_ACTIVE.coefficients[state.segment === "home" ? "home" : "biz"][cat] || 1.2,
             vatPct, rateId: id || undefined,
+            section: state.product === "pv_bess" ? $("addSection").value : state.product === "bess" ? "bess" : "pv",
             status: r ? r.status : "opt", src: r ? r.src : "Вручную", date: r ? r.date : ""
         });
         $("addPanel").hidden = true;
@@ -774,11 +882,19 @@
         const lines = [
             `Расчёт ${info.title} — ${state.client || "клиент"}${state.location ? ", " + state.location : ""}${state.leadId ? " (" + state.leadId + ")" : ""}`,
             `Сегмент: ${state.segment === "home" ? "дом" : "бизнес"}, подключение ${info.voltage === "0.4" ? "0,4" : info.voltage} кВ`,
+            ...(info.equip && (info.equip.inverter || info.equip.battery) ? [`Оборудование: ${[info.equip.inverter, info.equip.pvInverter, info.equip.battery].filter(Boolean).join(" · ")} (${info.equip.source}, ${info.equip.level})`] : []),
             "",
             `Цена с TVA: ${fmt0(result.priceWithVat)} MDL (≈ ${fmt0(result.priceWithVat / eurRate())} EUR)`,
             `Цена без TVA: ${fmt0(result.commercialPrice)} MDL (≈ ${fmt0(result.commercialPrice / eurRate())} EUR)`,
             `Себестоимость (с косвенными ${result.indirectPct}% и риском ${result.riskPct}%): ${fmt0(result.projectCost)} MDL`,
             `Прибыль: ${fmt0(result.profit)} MDL, маржа ${result.effectiveMargin.toFixed(1)}%`,
+            ...(hasTwoBlocks(items) ? (() => {
+                const pv = blockSums(result.items, "pv"), bs = blockSums(result.items, "bess");
+                const u = (x, per) => per > 0 ? fmt0(x / per) : "—";
+                return ["",
+                    `A · СЭС: ${fmt0(pv.gross)} MDL с TVA (${u(pv.net, info.pvKwp)} MDL/кВтп без TVA)`,
+                    `B · ${bessBlockName()}: ${fmt0(bs.gross)} MDL с TVA (${u(bs.net, info.bessKwh)} MDL/кВт·ч, ${u(bs.net, info.bessKw)} MDL/кВт без TVA)`];
+            })() : []),
             "",
             "По разделам (продажа без TVA):"
         ];
@@ -968,6 +1084,7 @@
             if (q && !(`${r.ru} ${r.ro} ${r.src}`.toLowerCase().includes(q))) return;
             (groups[r.cat] = groups[r.cat] || []).push([id, r]);
         });
+        renderEquipRates(q);
         $("ratesList").innerHTML = CAT_ORDER.filter(c => groups[c]).map(c => `<details class="cat" ${q ? "open" : ""}><summary><span>${CAT_RU[c]}</span><b>${groups[c].length}</b></summary>${groups[c].map(([id, r]) => {
             const obj = r.price && typeof r.price === "object";
             const vat = r.vat === "excl" ? "без TVA" : r.vat === "incl21" ? "с TVA 21%" : "с TVA";
@@ -984,6 +1101,41 @@
             </div>`;
         }).join("")}</details>`).join("");
     }
+
+    function renderEquipRates(q) {
+        const rb = window.RATEBOOK_ACTIVE;
+        const levels = rb.equipmentLevels || {};
+        const loaded = GEN.eqAll().some(e => GEN.eqNet(e) > 0);
+        $("eqInfo").textContent = loaded
+            ? `${rb.equipmentSource || "Прайс дистрибьютора"}, MDL с TVA. По этим моделям калькулятор подбирает инвертор, аккумулятор, счётчик и мониторинг. В расчёт идёт выбранный уровень, без TVA.`
+            : "Цены не загружены: «Импорт» выше → файл цен оборудования. Цены хранятся в облаке Telegram, в публичном файле их нет. Можно вписать цену вручную.";
+        $("eqLevel").innerHTML = Object.entries(levels).map(([k, v]) => `<option value="${k}"${k === rb.equipmentLevel ? " selected" : ""}>${v}</option>`).join("");
+        const opened = new Set([...$("eqList").querySelectorAll("details[open]")].map(d => d.dataset.brand));
+        const brands = {};
+        GEN.eqAll().forEach(e => {
+            if (q && !(`${e.ru} ${e.ro} ${e.brand} ${e.model}`.toLowerCase().includes(q))) return;
+            (brands[e.brand] = brands[e.brand] || []).push(e);
+        });
+        $("eqList").innerHTML = Object.keys(brands).map(b => `<details class="cat" data-brand="${escapeHtml(b)}" ${q || opened.has(b) ? "open" : ""}><summary><span>${escapeHtml(b)}</span><b>${brands[b].length}</b></summary>${brands[b].map(e => `
+            <div class="rate" data-eq="${escapeHtml(e.id)}">
+              <div class="item-name"><span class="badge ${e.status || "opt"}">${rb.statusLabels[e.status || "opt"]}</span> ${escapeHtml(e.ru)}</div>
+              <div class="item-fields">
+                ${Object.entries(levels).map(([k, v]) => `<label>${v}${k === rb.equipmentLevel ? " ✓" : ""}<input data-lvl="${k}" inputmode="decimal" value="${e.price[k] ?? ""}"></label>`).join("")}
+              </div>
+              <div class="hint">MDL с TVA · в расчёте ≈ ${fmt(GEN.eqNet(e))} MDL без TVA · гарантия ${e.warranty} ${e.warranty < 5 ? "года" : "лет"}${e.edited ? " · изменено вручную " + escapeHtml(e.edited) : ""}<br>${escapeHtml(e.src)}</div>
+            </div>`).join("")}</details>`).join("");
+    }
+    $("eqLevel").addEventListener("change", () => { setOverride(["equipmentLevel"], $("eqLevel").value); renderRates(); });
+    $("eqList").addEventListener("change", e => {
+        const el = e.target.closest("[data-lvl]");
+        if (!el) return;
+        const id = el.closest(".rate").dataset.eq;
+        const v = num(el.value);
+        if (Number.isNaN(v) || v < 0) { el.classList.add("bad"); return; }
+        setOverride(["equipment", id, "price", el.dataset.lvl], v);
+        setOverride(["equipment", id, "edited"], new Date().toLocaleDateString("ru-RU"));
+        renderRates();
+    });
 
     $("rateFilter").addEventListener("input", renderRates);
     $("fxFields").addEventListener("change", e => {
@@ -1014,8 +1166,10 @@
         renderRates();
     });
     $("btnRatesReset").addEventListener("click", () => {
-        if (!confirm("Сбросить все ручные изменения ставок к базе?")) return;
-        rbOverrides = {};
+        if (!confirm("Сбросить все ручные изменения ставок к базе? Цены оборудования по моделям останутся.")) return;
+        const keep = {};
+        ["equipment", "equipmentLevel", "equipmentSource"].forEach(k => { if (rbOverrides[k] !== undefined) keep[k] = rbOverrides[k]; });
+        rbOverrides = keep;
         saveRates();
         applyRatebook();
         recalc();
@@ -1024,12 +1178,43 @@
     $("btnRatesExport").addEventListener("click", () => {
         OFFER.deliver(new Blob([JSON.stringify(window.RATEBOOK_ACTIVE, null, 2)], { type: "application/json" }), `ratebook_${new Date().toISOString().slice(0, 10)}.json`);
     });
+    // Файл цен оборудования (optisolar-equipment-prices/1): цены моделей добавляются к правкам ставок,
+    // остальные правки не трогаются. Хранятся в облаке Telegram, в публичном ratebook.js их нет.
+    const EQ_PRICES = "optisolar-equipment-prices/1";
+    function importEquipmentPrices(data) {
+        const known = DEFAULT_RB.equipment || {};
+        const n = v => (v === null || v === "" || !Number.isFinite(Number(v)) ? null : Number(v));
+        const eq = {};
+        Object.entries(data.equipment || {}).forEach(([id, x]) => {
+            if (!known[id] || !x || typeof x !== "object") return;
+            const p = x.price || {};
+            eq[id] = { price: { angro: n(p.angro), installer: n(p.installer), retail: n(p.retail) } };
+            if (typeof x.src === "string") eq[id].src = x.src.slice(0, 200);
+            if (n(x.stackDiscount) != null) eq[id].stackDiscount = n(x.stackDiscount);
+        });
+        const count = Object.keys(eq).length;
+        if (!count) throw new Error("в файле нет цен моделей");
+        const extra = { equipment: eq };
+        if ((DEFAULT_RB.equipmentLevels || {})[data.equipmentLevel]) extra.equipmentLevel = data.equipmentLevel;
+        if (typeof data.equipmentSource === "string") extra.equipmentSource = data.equipmentSource.slice(0, 120);
+        rbOverrides = deepMerge(rbOverrides, extra);
+        saveRates();
+        applyRatebook();
+        recalc();
+        renderRates();
+        const word = count % 10 === 1 && count % 100 !== 11 ? "модель" : count % 10 >= 2 && count % 10 <= 4 && (count % 100 < 12 || count % 100 > 14) ? "модели" : "моделей";
+        return `Цены оборудования загружены: ${count} ${word}${extra.equipmentSource ? " (" + extra.equipmentSource + ")" : ""}. ` +
+            (CLOUD ? "Они сохранятся в облаке Telegram и появятся на других устройствах." : "Они сохранены в этом браузере.");
+    }
+
     $("btnRatesImport").addEventListener("click", () => $("ratesFile").click());
     $("ratesFile").addEventListener("change", async () => {
         const f = $("ratesFile").files[0];
         if (!f) return;
         try {
             const data = JSON.parse(await f.text());
+            $("ratesFile").value = "";
+            if (data && data.type === EQ_PRICES) { alert(importEquipmentPrices(data)); return; }
             if (!data.rates || !data.fx) throw new Error("это не база ставок");
             rbOverrides = data;
             saveRates();
@@ -1056,6 +1241,8 @@
             extraId: "imp" + Date.now().toString(36) + i,
             name: String(it.name || ""), nameRu: String(it.nameRu || it.name || ""),
             category: CAT_RU[it.category] ? it.category : "materials",
+            // блок оффера: pv — солнечная станция, bess — накопитель (оффер делится на два блока)
+            section: it.section === "pv" || it.section === "bess" ? it.section : "",
             unit: String(it.unit || "lot"),
             quantity: n(it.quantity), cost: n(it.cost) * k,
             coefficient: it.coefficient != null ? n(it.coefficient) : (n(fin.defaultCoefficient) || 1.2),
@@ -1099,7 +1286,12 @@
     async function runImport(getText) {
         const status = $("importStatus");
         try {
-            const title = importCalcInput(await parseImport(await getText()));
+            const data = await parseImport(await getText());
+            if (data && data.type === EQ_PRICES) {
+                status.textContent = importEquipmentPrices(data);
+                return true;
+            }
+            const title = importCalcInput(data);
             status.textContent = "";
             $("exportStatus").textContent = "Открыт расчёт: " + title + ". Проверьте позиции и нажмите «Сохранить проект».";
             return true;

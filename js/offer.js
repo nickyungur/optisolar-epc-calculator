@@ -29,6 +29,9 @@
             cols: ["Nr.", "Denumire", "Cantitate", "Unitate", "Preț unitar", "Valoare", "TVA %", "TVA", "Total cu TVA"],
             subtotal: "Total fără TVA", vat: "TVA totală", vatNa: "TVA (neaplicabilă)", total: "Total cu TVA", totalNoVat: "Total",
             optional: "Opțional", battery: "Acumulator", powerIncrease: "Serviciu de majorare a puterii", pricePerKw: "Preț per kW cu TVA",
+            pricePerKwNet: "Preț per kW fără TVA", pricePerKwh: "Preț per kWh cu TVA", pricePerKwhNet: "Preț per kWh fără TVA",
+            blockPv: "Centrală fotovoltaică", blockBess: "Sistem de stocare a energiei (BESS)", blockBat: "Acumulator (stocarea energiei)", blockCommon: "Lucrări comune",
+            blockTotal: "Total {x} cu TVA", blockTotalNoVat: "Total {x}", grandTotal: "Total {x} cu TVA", grandTotalNoVat: "Total {x}",
             note: "NOTĂ",
             n1: "Oferta comercială este valabilă timp de {days} zile calendaristice de la data emiterii.",
             n2: "Prețurile sunt exprimate în {cur}, {vat}.", vatIn: "cu TVA inclus", vatOut: "fără TVA",
@@ -55,6 +58,9 @@
             cols: ["№", "Наименование", "Кол-во", "Ед.", "Цена за ед.", "Сумма", "TVA %", "TVA", "Итого с TVA"],
             subtotal: "Итого без TVA", vat: "TVA", vatNa: "TVA (не применяется)", total: "Итого с TVA", totalNoVat: "Итого",
             optional: "Опционально", battery: "Аккумулятор", powerIncrease: "Услуга по увеличению мощности", pricePerKw: "Цена за киловатт с TVA",
+            pricePerKwNet: "Цена за киловатт без TVA", pricePerKwh: "Цена за кВт·ч с TVA", pricePerKwhNet: "Цена за кВт·ч без TVA",
+            blockPv: "Солнечная электростанция", blockBess: "Система накопления энергии (BESS)", blockBat: "Аккумулятор (накопление энергии)", blockCommon: "Общие работы",
+            blockTotal: "Итого {x} с TVA", blockTotalNoVat: "Итого {x}", grandTotal: "Итого {x} с TVA", grandTotalNoVat: "Итого {x}",
             note: "ПРИМЕЧАНИЕ",
             n1: "Предложение действует {days} календарных дней с даты выдачи.",
             n2: "Цены указаны в {cur}, {vat}.", vatIn: "с TVA", vatOut: "без TVA",
@@ -172,20 +178,58 @@
             return `<tr>${cells.map(([cls, v]) => `<td${edc(cls)}>${esc(v)}</td>`).join("")}</tr>`;
         };
         const live = result.items.filter(i => Math.abs(i.totalSell) > 0.004);
-        const equipment = live.filter(i => i.category === "main-equipment");
-        let body = equipment.map(i => row(
-            lang === "ru" ? i.nameRu || i.name : i.name,
-            qtyFmt(i.quantity), unitLabel(i.unit || "buc", lang),
-            m(i.sell), m(i.totalSell), i.vatPct || 0, m(i.vatAmount), m(i.totalWithVat)
-        )).join("");
-        GROUPS.forEach(g => {
-            const its = live.filter(i => g.cats.includes(i.category));
-            if (!its.length) return;
-            const net = its.reduce((s, i) => s + i.totalSell, 0);
-            const vat = its.reduce((s, i) => s + i.vatAmount, 0);
-            const gross = its.reduce((s, i) => s + i.totalWithVat, 0);
-            body += row(g[lang], "—", unitLabel("lot", lang), "—", m(net), net ? vat / net * 100 : 0, m(vat), m(gross));
-        });
+        const sum = (its, f) => its.reduce((s, i) => s + i[f], 0);
+        const tableBody = its => {
+            let html = its.filter(i => i.category === "main-equipment").map(i => row(
+                lang === "ru" ? i.nameRu || i.name : i.name,
+                qtyFmt(i.quantity), unitLabel(i.unit || "buc", lang),
+                m(i.sell), m(i.totalSell), i.vatPct || 0, m(i.vatAmount), m(i.totalWithVat)
+            )).join("");
+            GROUPS.forEach(g => {
+                const gi = its.filter(i => g.cats.includes(i.category));
+                if (!gi.length) return;
+                const net = sum(gi, "totalSell"), vat = sum(gi, "vatAmount"), gross = sum(gi, "totalWithVat");
+                html += row(g[lang], "—", unitLabel("lot", lang), "—", m(net), net ? vat / net * 100 : 0, m(vat), m(gross));
+            });
+            return html;
+        };
+        // Цена за единицу мощности — без TVA и с TVA
+        const perLines = (net, gross, label, labelNet, per, unit) => !(per > 0) ? "" :
+            `<div class="offer-summary-perkw"><span>${esc(labelNet)}</span><strong>${m(net / per)} ${cur}/${unit}</strong></div>` +
+            (vatOn ? `<div class="offer-summary-perkw"><span>${esc(label)}</span><strong>${m(gross / per)} ${cur}/${unit}</strong></div>` : "");
+        const pvPer = (net, gross) => perLines(net, gross, t.pricePerKw, t.pricePerKwNet, info.pvKwp, "kWp");
+        const bessPer = (net, gross) => perLines(net, gross, t.pricePerKwh, t.pricePerKwhNet, info.bessKwh, "kWh") +
+            perLines(net, gross, t.pricePerKw, t.pricePerKwNet, info.bessKw, "kW");
+        const summaryBox = (net, vat, gross, grandLabel, extra, cls) => `
+  <div class="offer-summary-wrap${cls ? " " + cls : ""}">
+    <div class="offer-summary">
+      <div><span>${esc(t.subtotal)}</span><strong>${m(net)} ${cur}</strong></div>
+      <div><span>${esc(vatOn ? t.vat : t.vatNa)}</span><strong>${m(vat)} ${cur}</strong></div>
+      <div class="offer-summary-grand"><span>${esc(grandLabel)}</span><strong>${m(gross)} ${cur}</strong></div>
+      ${extra}
+    </div>
+  </div>`;
+        const tableHtml = bodyHtml => `
+  <div class="offer-table-wrap">
+    <table class="offer-pricing-table">
+      <thead><tr>${head}</tr></thead>
+      <tbody>${bodyHtml}</tbody>
+    </table>
+  </div>`;
+
+        // Блоки A — СЭС и B — аккумулятор / BESS (поле section у позиций: генератор и расчёт от Claude),
+        // если блоков хотя бы два; иначе одна таблица
+        const blocks = [
+            { key: "pv", name: t.blockPv, title: info.pvKwp > 0 ? powerTitle({ ...info, product: "pv" }, meta) : "", its: live.filter(i => i.section === "pv"), per: pvPer },
+            { key: "bess", name: info.segment === "home" ? t.blockBat : t.blockBess, title: info.bessKwh > 0 ? powerTitle({ ...info, product: "bess" }, meta).replace(/^BESS /, "") : "", its: live.filter(i => i.section === "bess"), per: bessPer },
+            { key: "common", name: t.blockCommon, title: "", its: live.filter(i => i.section !== "pv" && i.section !== "bess"), per: () => "" }
+        ].filter(b => b.its.length);
+        const sectioned = blocks.length >= 2 && live.some(i => i.section === "pv" || i.section === "bess");
+        if (!sectioned) blocks.length = 0;
+        blocks.forEach((b, i) => { b.letter = "ABCD"[i]; });
+        const letters = blocks.map(b => b.letter).join(" + ");
+
+        const body = sectioned ? "" : tableBody(live);
         const optionalItems = result.optionalItems || [];
         const batteryItems = optionalItems.filter(i => i._key !== "optional-power-increase");
         const powerItem = optionalItems.find(i => i._key === "optional-power-increase");
@@ -196,9 +240,33 @@
             const gross = items.reduce((s, i) => s + i.totalWithVat, 0);
             return row(`${t.optional}: ${label}`, "—", unitLabel("lot", lang), "—", m(net), net ? vat / net * 100 : 0, m(vat), m(gross));
         };
-        body += optionRow(t.battery, batteryItems);
-        if (powerItem) body += optionRow(t.powerIncrease, [powerItem]);
+        // функция, а не строка: номера строк идут по порядку таблицы
+        // модель батареи из прайса — в названии опции: «Acumulator — Dyness PowerBox G2 10 kWh»
+        const batModels = batteryItems
+            .filter(i => /^eq:/.test(i.rateId || "") && /^(Acumulator|Modul baterie|Аккумулятор|Батарейный модуль)/.test(lang === "ru" ? i.nameRu || i.name : i.name))
+            .map(i => `${Number(i.quantity) > 1 ? qtyFmt(i.quantity) + " × " : ""}${(lang === "ru" ? i.nameRu || i.name : i.name).replace(/\s*\(.*\)\s*$/, "").replace(/^(Acumulator|Modul baterie( HV)?|Аккумулятор|Батарейный модуль( HV)?)\s+/, "")}`);
+        const batLabel = batModels.length ? `${t.battery} — ${batModels.join(" + ")}` : t.battery;
+        const optRows = () => optionRow(batLabel, batteryItems) + (powerItem ? optionRow(t.powerIncrease, [powerItem]) : "");
         const head = t.cols.map((c, i) => `<th class="${["c-n", "c-name", "c-qty", "c-unit", "c-price", "c-net", "c-vatp", "c-vat", "c-total"][i]}">${esc(c)}</th>`).join("");
+
+        let tablesHtml;
+        if (blocks.length) {
+            tablesHtml = blocks.map((b, i) => {
+                const rows = tableBody(b.its) + (i === 0 ? optRows() : "");
+                const net = sum(b.its, "totalSell"), vat = sum(b.its, "vatAmount"), gross = sum(b.its, "totalWithVat");
+                return `
+  <section class="offer-block">
+    <div${edc("offer-block-title")}><span class="offer-block-letter">${b.letter}</span> ${esc(b.name)}${b.title ? " — " + esc(b.title) : ""}</div>
+    ${tableHtml(rows)}
+    ${summaryBox(net, vat, gross, (vatOn ? t.blockTotal : t.blockTotalNoVat).replace("{x}", b.letter), b.per(net, gross))}
+  </section>`;
+            }).join("") + summaryBox(result.commercialPrice, result.vatAmount, result.priceWithVat,
+                (vatOn ? t.grandTotal : t.grandTotalNoVat).replace("{x}", letters), "", "offer-summary-all");
+        } else {
+            const per = info.product === "bess" ? bessPer(result.commercialPrice, result.priceWithVat)
+                : (info.pvKwp > 0 ? pvPer(result.commercialPrice, result.priceWithVat) : "");
+            tablesHtml = tableHtml(body + optRows()) + summaryBox(result.commercialPrice, result.vatAmount, result.priceWithVat, vatOn ? t.total : t.totalNoVat, per);
+        }
 
         const notes = [
             t.n1.replace("{days}", days),
@@ -242,20 +310,7 @@
       ${roofMaterial ? line(t.roofMaterial, roofMaterial) : ""}
     </section>
   </div>
-  <div class="offer-table-wrap">
-    <table class="offer-pricing-table">
-      <thead><tr>${head}</tr></thead>
-      <tbody>${body}</tbody>
-    </table>
-  </div>
-  <div class="offer-summary-wrap">
-    <div class="offer-summary">
-      <div><span>${esc(t.subtotal)}</span><strong>${m(result.commercialPrice)} ${cur}</strong></div>
-      <div><span>${esc(vatOn ? t.vat : t.vatNa)}</span><strong>${m(result.vatAmount)} ${cur}</strong></div>
-      <div class="offer-summary-grand"><span>${esc(vatOn ? t.total : t.totalNoVat)}</span><strong>${m(result.priceWithVat)} ${cur}</strong></div>
-      ${info.pvKwp > 0 && info.product !== "bess" ? `<div class="offer-summary-perkw"><span>${esc(t.pricePerKw)}</span><strong>${m(result.priceWithVat / info.pvKwp)} ${cur}/kWp</strong></div>` : ""}
-    </div>
-  </div>
+  ${tablesHtml}
   <div class="offer-bottom-grid">
     <div class="offer-bottom-left">
       <section class="offer-note-card">
