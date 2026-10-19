@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>OptiSolar · Калькулятор КП</title>
-<link rel="stylesheet" href="css/app.css?v=20261014-18">
+<link rel="stylesheet" href="css/app.css?v=20261019-2">
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 </head>
 <body>
@@ -51,6 +51,25 @@
         <div class="field" data-show="bess-power"><label for="bessKw">BESS, кВт</label><input id="bessKw" inputmode="decimal" value="500"></div>
         <div class="field" data-show="bess"><label for="bessKwh">BESS, кВт·ч</label><input id="bessKwh" inputmode="decimal" value="1000"></div>
       </div>
+      <div class="sub" data-show="equip">Оборудование</div>
+      <div class="grid2 eq-grid" data-show="equip">
+        <div class="field" data-show="home">
+          <label>Фазы на объекте</label>
+          <div class="chips" data-name="phases">
+            <button type="button" data-value="1">1 фаза</button>
+            <button type="button" data-value="3" class="on">3 фазы</button>
+          </div>
+        </div>
+        <div class="field"><label for="eqBrand">Бренд</label><select id="eqBrand">
+          <option value="auto">Авто — самый дешёвый подходящий</option>
+          <option value="huawei">Huawei</option>
+          <option value="solis">Solis + Dyness</option>
+          <option value="market">Без модели (рыночная ставка)</option>
+        </select></div>
+        <div class="field" id="eqInverterBox"><label for="eqInverter">Инвертор</label><select id="eqInverter"></select></div>
+        <div class="field" id="eqBatteryBox"><label for="eqBattery">Аккумулятор</label><select id="eqBattery"></select></div>
+      </div>
+      <p class="hint eq-hint" id="eqHint" data-show="equip"></p>
       <div class="sub">Объект</div>
       <div class="row2">
         <div class="field" data-show="biz">
@@ -121,6 +140,7 @@
         <div class="grid2">
           <div class="field"><label for="addName">Название (как в оффере)</label><input id="addName"></div>
           <div class="field"><label for="addCat">Раздел</label><select id="addCat"></select></div>
+          <div class="field" id="addSectionBox" hidden><label for="addSection">Блок оффера</label><select id="addSection"><option value="pv">A — СЭС</option><option value="bess">B — аккумулятор / BESS</option></select></div>
         </div>
         <div class="add-fields">
           <div class="field" id="addKwBox" hidden><label for="addKw">кВт (для цены)</label><input id="addKw" inputmode="decimal"></div>
@@ -225,6 +245,12 @@
       <div id="ratesList"></div>
       <input type="file" id="ratesFile" accept="application/json" hidden>
     </div>
+    <div class="card">
+      <h2>Оборудование по моделям</h2>
+      <p class="hint" id="eqInfo"></p>
+      <div class="field"><label for="eqLevel">Уровень цены в расчёте</label><select id="eqLevel"></select></div>
+      <div id="eqList"></div>
+    </div>
   </section>
 
   <!-- ================= ПРОЕКТЫ ================= -->
@@ -290,11 +316,11 @@
 <script src="js/data.js"></script>
 <script src="js/calculator.js"></script>
 <script src="js/logo.js"></script>
-<script src="js/ratebook.js"></script>
-<script src="js/generator.js?v=20261014-4"></script>
+<script src="js/ratebook.js?v=20261019-3"></script>
+<script src="js/generator.js?v=20261019-5"></script>
 <script src="js/references.js?v=20261014-18"></script>
-<script src="js/offer.js?v=20261014-18"></script>
+<script src="js/offer.js?v=20261019-5"></script>
 <script src="js/sync.js?v=20261014-18"></script>
-<script src="js/main.js?v=20261014-18"></script>
+<script src="js/main.js?v=20261019-5"></script>
 </body>
 </html>
