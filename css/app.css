@@ -377,3 +377,29 @@ body.no-scroll { overflow: hidden; }
 @media (max-width: 600px) {
     .eq-grid #eqInverterBox, .eq-grid #eqBatteryBox { grid-column: 1 / -1; }
 }
+
+/* Листы оффера (бизнес с накопителем): СЭС и варианты BESS — отдельные офферы */
+.sheets { margin: 4px 0 12px; padding: 10px; border: 1px solid var(--border); border-radius: 12px; background: var(--bg); }
+.sheet-tabs { display: flex; flex-wrap: wrap; gap: 6px; }
+.sheet-tab { display: grid; gap: 1px; text-align: left; min-width: 96px; padding: 6px 10px; border: 1px solid var(--border); border-radius: 10px; background: var(--card); color: var(--text); font: inherit; cursor: pointer; }
+.sheet-tab b { font-size: 14px; }
+.sheet-tab small { font-size: 12px; color: var(--muted); }
+.sheet-tab.on { background: var(--primary); border-color: var(--primary); color: var(--primary-text); }
+.sheet-tab.on small { color: var(--primary-text); opacity: .85; }
+.sheet-tab.off b { text-decoration: line-through; color: var(--muted); }
+.sheet-tab.sheet-add { align-content: center; border-style: dashed; color: var(--primary); font-weight: 600; }
+.sheet-tools { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; margin-top: 8px; }
+.sheet-tools .check { margin: 0; }
+.offer-host .offer-document + .offer-document { margin-top: 28px; }
+@media print { #offerDoc .offer-document + .offer-document { break-before: page; } }
+
+/* Замена позиции из базы — список в каждой строке шага ③ */
+.irow-ref { margin: 2px 0 0 26px; }
+.irow-ref:empty { display: none; }
+.irow-ref select { width: 100%; max-width: 560px; padding: 4px 8px; font-size: 13px; border-radius: 8px; color: var(--muted); background: var(--bg); text-overflow: ellipsis; }
+.irow-ref select:focus { color: var(--text); }
+@media (max-width: 520px) { .irow-ref { margin-left: 0; } .irow-ref select { max-width: none; } }
+
+/* Цена BESS: число + «за кВт / кВт·ч» + валюта */
+.money-input.money-input-3 { grid-template-columns: minmax(0, 1fr) 108px 76px; }
+.field.field-wide { grid-column: span 2; }
