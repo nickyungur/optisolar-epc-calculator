@@ -277,10 +277,12 @@
         const N = book.norms;
         const seg = input.segment === "home" ? "home" : "biz";
         const product = input.product || "pv_bess";
-        const pvKwp = Math.max(0, Number(input.pvKwp) || 0);
+        // значения, оставшиеся в полях от другого продукта, в расчёт не идут:
+        // у СЭС без накопителя «BESS, кВт» (по умолчанию 500) раньше увеличивал проект и трансформатор СН
+        const pvKwp = product === "bess" ? 0 : Math.max(0, Number(input.pvKwp) || 0);
         const requestedInverterKw = Math.max(0, Number(input.inverterKw) || 0);
-        const bessKwh = Math.max(0, Number(input.bessKwh) || 0);
-        const enteredBessKw = Math.max(0, Number(input.bessKw) || 0);
+        const bessKwh = product === "pv" ? 0 : Math.max(0, Number(input.bessKwh) || 0);
+        const enteredBessKw = product === "pv" ? 0 : Math.max(0, Number(input.bessKw) || 0);
         const homeInverterSizes = [3, 5, 6, 8, 10, 12, 15, 20, 25, 30, 50];
         const homeAutoKw = Math.max(requestedInverterKw || bessKwh / 2, product !== "bess" && pvKwp > 0 ? (requestedInverterKw || pvKwp / 1.15) : 0);
         const bessKw = seg === "home" && product !== "pv"

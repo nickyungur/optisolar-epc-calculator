@@ -20,7 +20,7 @@
 
     const T = {
         ro: {
-            kicker: "OFERTĂ COMERCIALĂ", sub: "pentru implementarea proiectului energetic",
+            kicker: "OFERTĂ COMERCIALĂ", sub: "pentru implementarea proiectului energetic", variant: "Varianta {n}",
             no: "Nr. ofertă", date: "Data emiterii", valid: "Valabilă până la", days: "zile calendaristice",
             client: "CLIENT ȘI OBIECT", name: "Nume", place: "Locație", type: "Tip proiect", voltage: "Nivel de racordare",
             roofType: "Forma acoperișului", roofMaterial: "Materialul acoperișului",
@@ -49,7 +49,7 @@
             },
         },
         ru: {
-            kicker: "КОММЕРЧЕСКОЕ ПРЕДЛОЖЕНИЕ", sub: "на реализацию энергетического проекта",
+            kicker: "КОММЕРЧЕСКОЕ ПРЕДЛОЖЕНИЕ", sub: "на реализацию энергетического проекта", variant: "Вариант {n}",
             no: "№ предложения", date: "Дата", valid: "Действует до", days: "календарных дней",
             client: "КЛИЕНТ И ОБЪЕКТ", name: "Название", place: "Место", type: "Тип проекта", voltage: "Напряжение подключения",
             roofType: "Форма крыши", roofMaterial: "Материал кровли",
@@ -155,7 +155,9 @@
         const days = meta.validDays || 7;
         const valid = new Date(now);
         valid.setDate(valid.getDate() + days);
-        const number = opts.number || offerNumber(meta, now);
+        // несколько листов в одном документе: номер с суффиксом -1, -2…; у вариантов BESS — «Varianta N»
+        const number = opts.number || offerNumber(meta, now) + (opts.numberSuffix ? "-" + opts.numberSuffix : "");
+        const variantTitle = opts.variant ? " — " + t.variant.replace("{n}", opts.variant) : "";
         const vatOn = result.vatEnabled;
         const ed = opts.editable ? ' contenteditable="true" class="offer-editable"' : "";
         const edc = cls => opts.editable ? ` contenteditable="true" class="offer-editable ${cls}"` : ` class="${cls}"`;
@@ -290,7 +292,7 @@
   </header>
   <section class="offer-title-block">
     <div class="offer-kicker">${esc(t.kicker)}</div>
-    <h1${ed}>${esc(powerTitle(info, meta))}</h1>
+    <h1${ed}>${esc(powerTitle(info, meta) + variantTitle)}</h1>
     <p${ed}>${esc(station)} — ${esc(t.sub)}</p>
     <div class="offer-yellow-rule"></div>
   </section>
@@ -485,5 +487,34 @@
         return download(blob, filename);
     }
 
-    window.EPC_OFFER = { render, toCanvas, pdfFromCanvas, a4Pages, pageImage, phoneSize, A4, deliver, inTelegram, offerNumber, money, powerTitle, GROUPS };
+    // Несколько листов оффера (СЭС, варианты BESS): A4 — каждый лист с новой страницы
+    function pdfFromCanvases(canvases, format) {
+        if (format !== "a4" || canvases.length === 1) return pdfFromCanvas(format === "a4" ? canvases[0] : stackCanvases(canvases), format);
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF({ unit: "mm", format: "a4", orientation: "portrait", compress: true });
+        let first = true;
+        canvases.forEach(canvas => a4Pages(canvas).forEach(p => {
+            if (!first) doc.addPage();
+            first = false;
+            doc.addImage(pageImage(canvas, p), "JPEG", p.x, p.top, p.w, p.hMm);
+        }));
+        return doc;
+    }
+
+    // Телефон: листы друг под другом в одну длинную страницу, между ними — серая полоса
+    function stackCanvases(canvases) {
+        if (canvases.length === 1) return canvases[0];
+        const gap = 48;
+        const out = document.createElement("canvas");
+        out.width = Math.max(...canvases.map(c => c.width));
+        out.height = canvases.reduce((s, c) => s + c.height, 0) + gap * (canvases.length - 1);
+        const ctx = out.getContext("2d");
+        ctx.fillStyle = "#d9dde3";
+        ctx.fillRect(0, 0, out.width, out.height);
+        let y = 0;
+        canvases.forEach(c => { ctx.drawImage(c, 0, y); y += c.height + gap; });
+        return out;
+    }
+
+    window.EPC_OFFER = { render, toCanvas, pdfFromCanvas, pdfFromCanvases, stackCanvases, a4Pages, pageImage, phoneSize, A4, deliver, inTelegram, offerNumber, money, powerTitle, GROUPS };
 })();

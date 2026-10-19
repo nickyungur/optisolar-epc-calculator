@@ -87,6 +87,9 @@
         indirect: null, risk: null, vatEnabled: true, currency: "MDL",
         edits: {}, extra: [],
         references: null,   // id объектов с фото в оффере (js/references.js); null — все
+        // листы бизнеса с накопителем: СЭС + варианты BESS, у каждого свои позиции, правки и итог
+        bessVariants: null, bessCur: "", sheet: "pv", pvInOffer: true,
+        bessPrice: 0, bessPriceUnit: "kw", bessPriceCurrency: "MDL",   // цена BESS без TVA: подгоняет позиции накопителя
         manual: false       // позиции импортированы из calc-input.json — генератор не добавляет свои
     };
     let state = { ...defaults, ...load(KEY_STATE, {}) };
@@ -140,30 +143,42 @@
         state[name] = btn.dataset.value;
         setChips(name, btn.dataset.value);
         if (name === "segment" && state.segment === "home") state.voltage = "0.4";
-        if (["segment", "product", "voltage"].includes(name)) state.edits = {};
+        if (["segment", "product", "voltage"].includes(name)) { state.edits = {}; (state.bessVariants || []).forEach(v => { v.edits = {}; }); }
         if (["segment", "product", "phases"].includes(name)) { state.eqInverter = ""; state.eqBattery = ""; }
         recalc();
     }));
 
     // ---------- поля ----------
-    const NUM_FIELDS = ["pvKwp", "inverterKw", "pricePerKwp", "powerIncreasePrice", "bessKw", "bessKwh", "distanceKm", "cableLvM", "cableMvM", "validDays", "indirect", "risk"];
+    const NUM_FIELDS = ["pvKwp", "inverterKw", "pricePerKwp", "powerIncreasePrice", "bessKw", "bessKwh", "bessPrice", "distanceKm", "cableLvM", "cableMvM", "validDays", "indirect", "risk"];
     const TEXT_FIELDS = ["client", "location", "leadId", "goal", "managerPhone"];
     NUM_FIELDS.forEach(id => $(id).addEventListener("input", () => {
         const v = num($(id).value);
         $(id).classList.toggle("bad", $(id).value.trim() !== "" && Number.isNaN(v));
         if (!Number.isNaN(v)) {
             state[id] = v;
-            if (["pvKwp", "inverterKw", "bessKw", "bessKwh"].includes(id)) state.edits = {};
+            if (sheetsMode() && VAR_FIELDS.includes(id)) {
+                const cur = curVariant();
+                cur[id] = v;
+                if (id !== "bessPrice") cur.edits = {};
+            } else if (id === "bessPrice") {
+                // цена не сбрасывает правки строк
+            } else if (["pvKwp", "inverterKw", "bessKw", "bessKwh"].includes(id)) state.edits = {};
             recalc();
         }
     }));
     TEXT_FIELDS.forEach(id => $(id).addEventListener("input", () => { state[id] = $(id).value; persist(); renderOffer(); }));
     $("zeroExport").addEventListener("change", () => { state.zeroExport = $("zeroExport").checked; recalc(); });
     // Оборудование: бренд сбрасывает выбор моделей; правки строк не сбрасываются
-    $("eqBrand").addEventListener("change", () => { state.eqBrand = $("eqBrand").value; state.eqInverter = ""; state.eqBattery = ""; recalc(); });
-    $("eqInverter").addEventListener("change", () => { state.eqInverter = $("eqInverter").value; recalc(); });
-    $("eqBattery").addEventListener("change", () => { state.eqBattery = $("eqBattery").value; recalc(); });
+    $("eqBrand").addEventListener("change", () => { const st = eqStore(); st.eqBrand = $("eqBrand").value; st.eqInverter = ""; st.eqBattery = ""; recalc(); });
+    $("eqInverter").addEventListener("change", () => { eqStore().eqInverter = $("eqInverter").value; recalc(); });
+    $("eqBattery").addEventListener("change", () => { eqStore().eqBattery = $("eqBattery").value; recalc(); });
     $("vatEnabled").addEventListener("change", () => { state.vatEnabled = $("vatEnabled").checked; recalc(); });
+    // единица и валюта цены BESS — у текущего варианта, если листы
+    ["bessPriceUnit", "bessPriceCurrency"].forEach(id => $(id).addEventListener("change", () => {
+        state[id] = $(id).value;
+        if (sheetsMode()) curVariant()[id] = $(id).value;
+        recalc();
+    }));
     $("pricePerKwpCurrency").addEventListener("change", () => {
         state.pricePerKwpCurrency = $("pricePerKwpCurrency").value === "EUR" ? "EUR" : "MDL";
         recalc();
@@ -181,6 +196,8 @@
         $("roofType").value = state.roofType || "";
         $("roofMaterial").value = state.roofMaterial || "";
         $("pricePerKwpCurrency").value = state.pricePerKwpCurrency || "MDL";
+        $("bessPriceUnit").value = state.bessPriceUnit === "kwh" ? "kwh" : "kw";
+        $("bessPriceCurrency").value = state.bessPriceCurrency === "EUR" ? "EUR" : "MDL";
         TEXT_FIELDS.forEach(id => { $(id).value = state[id] ?? ""; });
         $("zeroExport").checked = !!state.zeroExport;
         $("vatEnabled").checked = state.vatEnabled !== false;
@@ -228,17 +245,102 @@
     }
     const bessBlockName = () => state.segment === "home" ? "Аккумулятор" : "BESS";
 
-    function buildItems() {
-        const gen = GEN.generate(state);
+    // ---------- листы: СЭС и варианты BESS (бизнес с накопителем, 2026-10-19) ----------
+    // Каждый лист — отдельный полный оффер со своими позициями, правками и итогом (с проектом и сдачей).
+    // Варианты BESS — со своими кВт, кВт·ч и оборудованием; цена СЭС от них не зависит.
+    // Галочка «в оффере» — какие листы попадут в итоговый документ. Дом — один лист (блоки A/B),
+    // расчёт от Claude — как пришёл.
+    const MAX_VARIANTS = 5;
+    // поля шага ①, которые у каждого варианта BESS свои (в state — значения текущего варианта)
+    const VAR_FIELDS = ["bessKw", "bessKwh", "bessPrice", "bessPriceUnit", "bessPriceCurrency"];
+    const sheetsMode = () => !state.manual && state.segment === "biz" && state.product !== "pv";
+    function newVariant(id, from) {
+        return {
+            id, bessKw: from.bessKw, bessKwh: from.bessKwh, eqBrand: from.eqBrand || "auto",
+            bessPrice: from.bessPrice || 0, bessPriceUnit: from.bessPriceUnit || "kw", bessPriceCurrency: from.bessPriceCurrency || "MDL",
+            eqInverter: from === state ? "" : from.eqInverter || "", eqBattery: from.eqBattery || "",
+            edits: {}, extra: [], itemOrder: [], inOffer: true
+        };
+    }
+    function ensureVariants() {
+        if (Array.isArray(state.bessVariants) && state.bessVariants.length) return;
+        // первый вариант — из полей шага ①; правки и добавленные позиции BESS прежних проектов — сюда же
+        const v = newVariant("b1", state);
+        v.edits = { ...(state.edits || {}) };
+        v.extra = (state.extra || []).filter(x => x.section === "bess");
+        state.extra = (state.extra || []).filter(x => x.section !== "bess");
+        state.bessVariants = [v];
+        state.bessCur = "b1";
+    }
+    function sheetIds() {
+        return [...(state.product === "pv_bess" ? ["pv"] : []), ...state.bessVariants.map(v => v.id)];
+    }
+    function activeSheet() {
+        if (!sheetsMode()) return "main";
+        ensureVariants();
+        const ids = sheetIds();
+        return ids.includes(state.sheet) ? state.sheet : ids[0];
+    }
+    const isBessSheet = id => id !== "pv" && id !== "main";
+    function curVariant() {
+        ensureVariants();
+        return state.bessVariants.find(v => v.id === state.bessCur) || state.bessVariants[0];
+    }
+    // где лежат правки, добавленные позиции и порядок строк листа
+    function store(sheet) {
+        return isBessSheet(sheet) ? (state.bessVariants.find(v => v.id === sheet) || state) : state;
+    }
+    const S = () => store(activeSheet());
+    const eqStore = () => S();
+    function sheetName(id) {
+        if (id === "pv") return "СЭС";
+        if (!isBessSheet(id)) return "";
+        const i = state.bessVariants.findIndex(v => v.id === id);
+        return state.bessVariants.length > 1 ? `BESS ${i + 1}` : "BESS";
+    }
+    const sheetInOffer = id => id === "pv" ? state.pvInOffer !== false : isBessSheet(id) ? store(id).inOffer !== false : true;
+    function genInput(sheet) {
+        if (sheet === "pv") return { ...state, product: "pv" };
+        if (!isBessSheet(sheet)) return state;
+        const v = store(sheet);
+        return { ...state, product: "bess", inverterKw: 0, zeroExport: false, bessKw: v.bessKw, bessKwh: v.bessKwh, eqBrand: v.eqBrand || "auto", eqInverter: v.eqInverter || "", eqBattery: v.eqBattery || "" };
+    }
+    // Переключение листа: поля «BESS, кВт / кВт·ч» показывают вариант этого листа
+    function selectSheet(id) {
+        state.sheet = id;
+        if (isBessSheet(id)) {
+            const v = store(id);
+            state.bessCur = id;
+            VAR_FIELDS.forEach(f => { state[f] = v[f] ?? defaults[f]; $(f).value = state[f] ?? ""; });
+        }
+        recalc();
+    }
+
+    function buildItems(sheet) {
+        const gen = GEN.generate(genInput(sheet));
+        const st = store(sheet);
+        const edits = st.edits || {};
         // _key — ключ правки по исходному названию генератора: после переименования правки не теряются
         const items = (state.manual ? [] : gen.items).map(it => {
             const key = itemKey(it);
-            const e = state.edits[key];
+            const e = edits[key];
             return e ? { ...it, ...e, edited: true, _key: key } : { ...it, _key: key };
         }).filter(it => !it.removed);
-        (state.extra || []).forEach(x => items.push({ ...x, edited: true, status: x.status || "opt" }));
+        (st.extra || []).forEach(x => items.push({ ...x, edited: true, status: x.status || "opt" }));
         // бюджет «цена за кВтп» — только на позиции СЭС; блок аккумулятора не масштабируется
         const coreItems = items.filter(it => !isOptionalItem(it) && it.section !== "bess");
+        // цена BESS без TVA (за кВт или кВт·ч): позиции накопителя подгоняются так же, как СЭС под цену за кВтп
+        const bt = isBessSheet(sheet) ? store(sheet) : state;
+        const bessTarget = (Number(bt.bessPrice) || 0) * (bt.bessPriceCurrency === "EUR" ? eurRate() : 1);
+        const bessBase = bt.bessPriceUnit === "kwh" ? gen.info.bessKwh : gen.info.bessKw;
+        if (bessTarget > 0 && bessBase > 0 && state.product !== "pv") {
+            const bessItems = items.filter(it => !isOptionalItem(it) && it.section === "bess");
+            const sell = bessItems.reduce((sum, item) => sum + item.quantity * item.cost * item.coefficient, 0);
+            if (sell > 0) {
+                const factor = bessTarget * bessBase / sell;
+                bessItems.forEach(item => { item.coefficient *= factor; });
+            }
+        }
         const targetPrice = (Number(state.pricePerKwp) || 0) * (state.pricePerKwpCurrency === "EUR" ? eurRate() : 1);
         if (targetPrice > 0 && state.product !== "bess" && gen.info.pvKwp > 0) {
             const currentSell = coreItems.reduce((sum, item) => sum + item.quantity * item.cost * item.coefficient, 0);
@@ -248,15 +350,14 @@
             }
         }
         items.forEach(it => { it.optional = isOptionalItem(it); });
-        const order = Array.isArray(state.itemOrder) ? state.itemOrder : [];
+        const order = Array.isArray(st.itemOrder) ? st.itemOrder : [];
         const rank = new Map(order.map((key, i) => [key, i]));
         items.sort((a, b) => (rank.get(a.extraId || a._key || itemKey(a)) ?? 1e9) - (rank.get(b.extraId || b._key || itemKey(b)) ?? 1e9));
         return { gen, items };
     }
 
-    function recalc() {
-        updateVisibility();
-        const { gen, items } = buildItems();
+    function computeSheet(sheet) {
+        const { gen, items } = buildItems(sheet);
         const fin = window.RATEBOOK_ACTIVE.financial;
         const settings = {
             indirectPct: state.indirect ?? fin.indirect,
@@ -273,7 +374,16 @@
         }
         const result = CALC.calculateProject(coreItems, settings);
         const optionalResult = CALC.calculateProject(optionalItems, { ...settings, indirectPct: 0, riskPct: 0 });
-        last = { gen, items: [...result.items, ...optionalResult.items], optionalItems: optionalResult.items, result, info: gen.info };
+        return { sheet, name: sheetName(sheet), inOffer: sheetInOffer(sheet), gen, items: [...result.items, ...optionalResult.items], optionalItems: optionalResult.items, result, info: gen.info };
+    }
+
+    function recalc() {
+        updateVisibility();
+        const active = activeSheet();
+        const sheets = (sheetsMode() ? sheetIds() : ["main"]).map(computeSheet);
+        last = sheets.find(x => x.sheet === active) || sheets[0];
+        last.sheets = sheets;
+        renderSheets();
         renderTotals();
         renderEquip();
         renderItems();
@@ -287,6 +397,7 @@
         const rb = window.RATEBOOK_ACTIVE;
         $("fxHint").textContent = `Курс BNM ${rb.fx.date}: 1 EUR = ${String(rb.fx.EUR).replace(".", ",")} MDL`;
         $("sumGross").textContent = fmt0(cv(result.priceWithVat)) + " " + c;
+        $("sumLabel").textContent = last.name ? `Итого с TVA · лист ${last.name}` : "Итого с TVA";
         $("sumNet").textContent = fmt0(cv(result.commercialPrice)) + " " + c;
         $("sumCost").textContent = fmt0(cv(result.projectCost)) + " " + c;
         $("sumProfit").textContent = fmt0(cv(result.profit)) + " " + c;
@@ -300,9 +411,10 @@
             const pv = blockSums(result.items, "pv"), bs = blockSums(result.items, "bess");
             per.push(`A · СЭС: ${fmt0(cv(pv.gross))} ${c} с TVA`, `B · ${bessBlockName()}: ${fmt0(cv(bs.gross))} ${c} с TVA`);
         } else {
-            if (info.bessKwh > 0 && state.product !== "pv") per.push(`${fmt0(cv(result.commercialPrice / info.bessKwh))} ${c}/кВт·ч без TVA`);
-            if (info.pvKwp > 0 && state.product !== "bess") per.push(`${fmt0(cv(result.commercialPrice / info.pvKwp))} ${c}/кВтп без TVA (солнечная станция)`);
+            if (info.bessKwh > 0 && !(info.pvKwp > 0)) per.push(`${fmt0(cv(result.commercialPrice / info.bessKwh))} ${c}/кВт·ч без TVA`);
+            if (info.pvKwp > 0) per.push(`${fmt0(cv(result.commercialPrice / info.pvKwp))} ${c}/кВтп без TVA (солнечная станция)`);
         }
+        if (last.sheets.length > 1) per.unshift("Листы: " + last.sheets.map(x => `${x.name} ${fmt0(cv(x.result.priceWithVat))} ${c}${x.inOffer ? "" : " (не в оффере)"}`).join(" · "));
         $("perUnit").textContent = per.join(" · ");
         const pvPrice = $("pvKwPrice");
         if (two) {
@@ -316,6 +428,11 @@
                 line(`<b>B · ${bessBlockName()}, за 1 кВт·ч</b>`, bs, info.bessKwh, "кВт·ч"),
                 line(`<b>B · ${bessBlockName()}, за 1 кВт</b>`, bs, info.bessKw, "кВт")
             ].filter(Boolean).join("<br>");
+        } else if (isBessSheet(last.sheet) && info.bessKwh > 0) {
+            const line = (label, per, unit) => per > 0
+                ? `<b>${label}</b>: ${fmt0(cv(result.commercialPrice / per))} ${c}/${unit} без TVA / ${fmt0(cv(result.priceWithVat / per))} ${c}/${unit} с TVA` : "";
+            pvPrice.hidden = false;
+            pvPrice.innerHTML = [line(`${last.name}, за 1 кВт·ч`, info.bessKwh, "кВт·ч"), line(`${last.name}, за 1 кВт`, info.bessKw, "кВт")].filter(Boolean).join("<br>");
         } else if (info.pvKwp > 0 && state.product !== "bess") {
             const mdlNet = result.commercialPrice / info.pvKwp;
             const mdlGross = result.priceWithVat / info.pvKwp;
@@ -328,18 +445,90 @@
             pvPrice.textContent = "";
         }
         const w = gen.warnings.slice();
-        if (Object.keys(state.edits).length || (state.extra || []).length) w.push("Есть ручные правки позиций.");
+        if (Object.keys(S().edits || {}).length || (S().extra || []).length) w.push("Есть ручные правки позиций.");
         $("warnings").innerHTML = w.map(x => `<li>${escapeHtml(x)}</li>`).join("");
         const open = !$("sumDetails").hidden;
         $("btnDetails").textContent = (w.length ? `⚠ ${w.length} · ` : "") + (open ? "Свернуть ▾" : "Подробнее ▴");
     }
 
+    // ---------- панель листов (шаг ③) ----------
+    function renderSheets() {
+        const bar = $("sheetsBar");
+        const lblKw = document.querySelector('label[for="bessKw"]'), lblKwh = document.querySelector('label[for="bessKwh"]');
+        if (!sheetsMode()) {
+            bar.hidden = true;
+            bar.innerHTML = "";
+            lblKw.textContent = "BESS, кВт";
+            lblKwh.textContent = "BESS, кВт·ч";
+            document.querySelector('label[for="bessPrice"]').textContent = state.segment === "home" ? "Цена аккумулятора без TVA" : "Цена BESS без TVA";
+            return;
+        }
+        // поля «BESS, кВт / кВт·ч» всегда показывают текущий вариант (после смены сегмента там могли остаться другие числа)
+        const cur = curVariant();
+        VAR_FIELDS.map(f => [f, cur[f] ?? defaults[f]]).forEach(([id, v]) => {
+            if (state[id] === v) return;
+            state[id] = v;
+            if (document.activeElement !== $(id)) $(id).value = v ?? "";
+        });
+        const vName = sheetName(cur.id);
+        lblKw.textContent = `${vName}, кВт`;
+        lblKwh.textContent = `${vName}, кВт·ч`;
+        document.querySelector('label[for="bessPrice"]').textContent = `Цена ${vName} без TVA`;
+        const c = curName();
+        const act = last.sheet;
+        const canAdd = state.bessVariants.length < MAX_VARIANTS;
+        const canDelete = isBessSheet(act) && state.bessVariants.length > 1;
+        bar.hidden = false;
+        bar.innerHTML = `<div class="sheet-tabs">${last.sheets.map(x => `
+            <button type="button" class="sheet-tab${x.sheet === act ? " on" : ""}${x.inOffer ? "" : " off"}" data-sheet="${x.sheet}">
+              <b>${escapeHtml(x.name)}</b><small>${fmt0(cv(x.result.priceWithVat))} ${c}${x.inOffer ? "" : " · не в оффере"}</small>
+            </button>`).join("")}
+            ${canAdd ? '<button type="button" class="sheet-tab sheet-add" data-act="add">+ Вариант BESS</button>' : ""}
+          </div>
+          <div class="sheet-tools">
+            <label class="check"><input type="checkbox" data-act="in-offer"${last.inOffer ? " checked" : ""}> Лист «${escapeHtml(last.name)}» в оффере</label>
+            ${canDelete ? '<button type="button" class="btn" data-act="delete">Удалить лист</button>' : ""}
+          </div>`;
+    }
+    $("sheetsBar").addEventListener("click", e => {
+        const tab = e.target.closest("[data-sheet]");
+        if (tab) { selectSheet(tab.dataset.sheet); return; }
+        const btn = e.target.closest("button[data-act]");
+        if (!btn) return;
+        if (btn.dataset.act === "add" && state.bessVariants.length < MAX_VARIANTS) {
+            // новый вариант — с параметрами текущего, позиции считаются заново
+            const n = Math.max(0, ...state.bessVariants.map(v => Number(String(v.id).slice(1)) || 0)) + 1;
+            state.bessVariants.push(newVariant("b" + n, curVariant()));
+            selectSheet("b" + n);
+        }
+        if (btn.dataset.act === "delete") {
+            const id = activeSheet();
+            if (!isBessSheet(id) || state.bessVariants.length < 2) return;
+            if (!confirm(`Удалить лист «${sheetName(id)}» вместе с его правками?`)) return;
+            state.bessVariants = state.bessVariants.filter(v => v.id !== id);
+            const v = state.bessVariants[0];
+            state.bessCur = v.id;
+            VAR_FIELDS.forEach(f => { state[f] = v[f] ?? defaults[f]; $(f).value = state[f] ?? ""; });
+            selectSheet(state.product === "pv_bess" ? "pv" : v.id);
+        }
+    });
+    $("sheetsBar").addEventListener("change", e => {
+        if (!e.target.matches('[data-act="in-offer"]')) return;
+        const id = activeSheet();
+        if (id === "pv") state.pvInOffer = e.target.checked;
+        else store(id).inOffer = e.target.checked;
+        recalc();
+    });
+
     // ---------- оборудование по моделям ----------
     function renderEquip() {
         const eq = last.info.equip || {};
         // модель, выбранная для другого расчёта (бренд, фазы, семейство), не применилась — сбрасываем выбор
-        if (eq.ignoredInv) state.eqInverter = "";
-        if (eq.ignoredBat) state.eqBattery = "";
+        const st = eqStore();
+        if (eq.ignoredInv) st.eqInverter = "";
+        if (eq.ignoredBat) st.eqBattery = "";
+        $("eqBrand").value = st.eqBrand || "auto";
+        $("eqTitle").textContent = last.name ? `Оборудование — лист ${last.name}` : "Оборудование";
         const fill = (id, list, value, autoText) => {
             const opts = list.slice();
             // выбранная вручную модель остаётся в списке, даже если по мощности уже не подходит
@@ -351,10 +540,10 @@
                 opts.map(o => `<option value="${escapeHtml(o.id)}">${escapeHtml(o.label)}</option>`).join("");
             $(id).value = opts.some(o => o.id === value) ? value : "";
         };
-        const market = state.eqBrand === "market";
-        fill("eqInverter", market ? [] : eq.invOptions || [], state.eqInverter,
+        const market = st.eqBrand === "market";
+        fill("eqInverter", market ? [] : eq.invOptions || [], st.eqInverter,
             eq.inverter ? `Авто: ${eq.inverter}` : "Авто: рыночная ставка");
-        fill("eqBattery", market ? [] : eq.batOptions || [], state.eqBattery,
+        fill("eqBattery", market ? [] : eq.batOptions || [], st.eqBattery,
             eq.battery ? `Авто: ${eq.battery}` : "Авто: рыночная ставка");
         $("eqInverterBox").hidden = market || !(eq.inverter || (eq.invOptions || []).length);
         $("eqBatteryBox").hidden = market || !(eq.battery || (eq.batOptions || []).length);
@@ -378,8 +567,85 @@
         return state.lang === "ru" ? (it.nameRu || it.name) : it.name;
     }
 
+    // ---------- замена позиции из базы (список в каждой строке шага ③) ----------
+    // Варианты — ставки того же раздела, у оборудования ещё модели из прайса (с ценой).
+    // Выбор меняет название, единицу, цену и источник строки; количество, коэффициент и TVA остаются.
+    function rateKw(id, it) {
+        const info = last.info;
+        if (/^inv_/.test(id)) return (info.inverterKw || info.bessKw || 0) / Math.max(1, Number(it.quantity) || 1);
+        return Math.max(info.pvKwp || 0, info.bessKw || 0);
+    }
+    function dbRef(value, it) {
+        const rb = window.RATEBOOK_ACTIVE;
+        const r2 = x => Math.round(x * 100) / 100;
+        if (value.startsWith("e:")) {
+            const e = GEN.eqGet(value.slice(2));
+            if (!e || !(GEN.eqNet(e) > 0)) return null;
+            const level = (rb.equipmentLevels || {})[rb.equipmentLevel] || "";
+            return { name: e.ro, nameRu: e.ru, unit: "buc", cost: r2(GEN.eqNet(e)), rateId: "eq:" + e.id, status: e.status || "opt", src: `${e.src} · ${level}`, date: e.date, category: "main-equipment" };
+        }
+        if (value.startsWith("r:")) {
+            const id = value.slice(2), r = rb.rates[id];
+            if (!r) return null;
+            let cost = GEN.netMdl(id, rateKw(id, it)), unit = r.unit;
+            if (unit === "Wp") { cost *= rb.norms.panelWp; unit = "buc"; } // панель — за штуку
+            return { name: r.ro, nameRu: r.ru, unit, cost: r2(cost), rateId: id, status: r.status, src: r.src, date: r.date, category: r.cat };
+        }
+        return null;
+    }
+    function dbValue(it) {
+        const id = it.rateId || "";
+        if (id.startsWith("eq:")) return "e:" + id.slice(3);
+        return window.RATEBOOK_ACTIVE.rates[id] ? "r:" + id : "";
+    }
+    // Список вариантов раздела — один раз на отрисовку
+    function dbGroups(cat, it) {
+        const rb = window.RATEBOOK_ACTIVE;
+        const c = curName();
+        const groups = [];
+        if (cat === "main-equipment") {
+            const brands = {};
+            GEN.eqAll().filter(e => GEN.eqNet(e) > 0).forEach(e => { (brands[e.brand] = brands[e.brand] || []).push(e); });
+            Object.keys(brands).forEach(b => groups.push({ label: `Модели ${b}`, opts: brands[b].map(e => ({
+                value: "e:" + e.id,
+                label: `${e.brand} ${e.model}${e.kw ? " · " + e.kw + " кВт" : e.kwh ? " · " + String(e.kwh).replace(".", ",") + " кВт·ч" : ""} — ${fmt0(cv(GEN.eqNet(e)))} ${c}`
+            })) }));
+        }
+        const rates = Object.entries(rb.rates).filter(([, r]) => r.cat === cat).map(([id, r]) => {
+            const obj = r.price && typeof r.price === "object";
+            const per = r.unit === "Wp" ? "шт" : r.unit;
+            const net = GEN.netMdl(id, obj ? rateKw(id, it) : 0) * (r.unit === "Wp" ? rb.norms.panelWp : 1);
+            return { value: "r:" + id, label: `${r.ru} — ${fmt0(cv(net))} ${c}${obj ? "" : "/" + per}` };
+        });
+        if (rates.length) groups.push({ label: "Ставки", opts: rates });
+        return groups;
+    }
+    function dbSelect(it, cache) {
+        const cat = it.category;
+        if (!cache[cat]) cache[cat] = dbGroups(cat, it);
+        const value = dbValue(it);
+        const known = cache[cat].some(g => g.opts.some(o => o.value === value));
+        return `<select data-f="ref" aria-label="Заменить из базы">${known ? "" : '<option value="" selected>⇄ Заменить из базы…</option>'}${cache[cat].map(g =>
+            `<optgroup label="${escapeHtml(g.label)}">${g.opts.map(o => `<option value="${escapeHtml(o.value)}"${o.value === value ? " selected" : ""}>${escapeHtml(o.label)}</option>`).join("")}</optgroup>`).join("")}</select>`;
+    }
+    function replaceFromDb(it, value) {
+        const ref = dbRef(value, it);
+        if (!ref) return;
+        if (ref.category !== it.category) delete ref.category;
+        const st = S();
+        if (it.extraId) {
+            const x = (st.extra || []).find(y => y.extraId === it.extraId);
+            if (x) Object.assign(x, ref);
+        } else {
+            st.edits = st.edits || {};
+            st.edits[it._key] = { ...(st.edits[it._key] || {}), ...ref };
+        }
+        recalc();
+    }
+
     function renderItems() {
         const { result } = last;
+        const dbCache = {};
         const c = curName();
         const labels = window.RATEBOOK_ACTIVE.statusLabels;
         const byCat = {};
@@ -408,6 +674,7 @@
                   <div class="isum">${fmt0(cv(it.totalSell))}<small>${result.vatEnabled ? (it.vatPct ? "с TVA " + fmt0(cv(it.totalWithVat)) : "без TVA") : ""}</small></div>
                   <button type="button" class="x" title="Убрать позицию">×</button>
                 </div>
+                <div class="irow-ref">${it.optional && !it.rateId ? "" : dbSelect(it, dbCache)}</div>
                 <div class="irow-f">
                   <label><span>Кол.<i> · ${escapeHtml(it.unit)}</i></span><input data-f="quantity" inputmode="decimal" value="${numIn(it.quantity)}"><em>${escapeHtml(it.unit)}</em></label>
                   <label class="w-cost"><span>Цена<i> · ${c}</i></span><input data-f="cost" inputmode="decimal" value="${numIn(cv(it.cost))}"><em>${c}</em></label>
@@ -443,7 +710,7 @@
         const from = keys.indexOf(draggedItem), to = keys.indexOf(targetKey);
         if (from < 0 || to < 0) return;
         keys.splice(to, 0, keys.splice(from, 1)[0]);
-        state.itemOrder = keys;
+        S().itemOrder = keys;
         recalc();
     });
 
@@ -474,6 +741,7 @@
         if (!input) return;
         const it = last.items[Number(input.closest(".irow").dataset.idx)];
         const f = input.dataset.f;
+        if (f === "ref") { replaceFromDb(it, input.value); return; }
         let v;
         if (f === "name") {
             v = input.value.trim();
@@ -485,11 +753,13 @@
         }
         // название правим на языке оффера: RO → name, RU → nameRu
         const field = f === "name" && state.lang === "ru" ? "nameRu" : f;
+        const st = S();
         if (it.extraId) {
-            const x = state.extra.find(y => y.extraId === it.extraId);
+            const x = (st.extra || []).find(y => y.extraId === it.extraId);
             if (x) x[field] = v;
         } else {
-            state.edits[it._key] = { ...(state.edits[it._key] || {}), [field]: v };
+            st.edits = st.edits || {};
+            st.edits[it._key] = { ...(st.edits[it._key] || {}), [field]: v };
         }
         recalc();
     });
@@ -505,15 +775,20 @@
         const btn = e.target.closest("button.x");
         if (!btn) return;
         const it = last.items[Number(btn.closest(".irow").dataset.idx)];
-        if (it.extraId) state.extra = state.extra.filter(y => y.extraId !== it.extraId);
-        else state.edits[it._key] = { ...(state.edits[it._key] || {}), removed: true };
+        const st = S();
+        if (it.extraId) st.extra = (st.extra || []).filter(y => y.extraId !== it.extraId);
+        else { st.edits = st.edits || {}; st.edits[it._key] = { ...(st.edits[it._key] || {}), removed: true }; }
         recalc();
     });
     $("btnDetails").addEventListener("click", () => {
         $("sumDetails").hidden = !$("sumDetails").hidden;
         renderTotals();
     });
-    $("btnResetItems").addEventListener("click", () => { state.edits = {}; state.extra = []; state.manual = false; recalc(); });
+    $("btnResetItems").addEventListener("click", () => {
+        if (state.manual) { state.edits = {}; state.extra = []; state.manual = false; }
+        else { const st = S(); st.edits = {}; st.extra = []; }
+        recalc();
+    });
     // ---------- новая позиция: из ставок или своя ----------
     function rateLabel(r) {
         const p = r.price && typeof r.price === "object"
@@ -551,7 +826,7 @@
         $("addQty").value = "1";
         $("addUnit").value = "buc";
         $("addKwBox").hidden = true;
-        $("addSectionBox").hidden = state.product !== "pv_bess";
+        $("addSectionBox").hidden = state.product !== "pv_bess" || sheetsMode();
         $("addSection").value = "pv";
         $("addHint").textContent = "Выбери ставку — название, раздел, единица и цена подставятся. Или заполни свою позицию.";
         $("addPanel").hidden = false;
@@ -617,8 +892,9 @@
         $("addCost").classList.toggle("bad", Number.isNaN(cost));
         if (!name || Number.isNaN(qty) || qty <= 0 || Number.isNaN(cost)) return;
         const cat = $("addCat").value;
-        state.extra = state.extra || [];
-        state.extra.push({
+        const st = S();
+        st.extra = st.extra || [];
+        st.extra.push({
             extraId: "x" + Date.now(), category: cat,
             // введённое название — на языке оффера; второй язык берём из ставки, если её не переименовали
             name: state.lang === "ru" ? (r ? r.ro : name) : name,
@@ -626,7 +902,7 @@
             unit: $("addUnit").value.trim() || "buc", quantity: qty, cost,
             coefficient: window.RATEBOOK_ACTIVE.coefficients[state.segment === "home" ? "home" : "biz"][cat] || 1.2,
             vatPct, rateId: id || undefined,
-            section: state.product === "pv_bess" ? $("addSection").value : state.product === "bess" ? "bess" : "pv",
+            section: sheetsMode() ? (isBessSheet(activeSheet()) ? "bess" : "pv") : state.product === "pv_bess" ? $("addSection").value : state.product === "bess" ? "bess" : "pv",
             status: r ? r.status : "opt", src: r ? r.src : "Вручную", date: r ? r.date : ""
         });
         $("addPanel").hidden = true;
@@ -634,19 +910,19 @@
     });
 
     // ---------- оффер ----------
-    function offerState() {
+    function offerState(sh = last) {
         // Панели считаем по позициям: генератор не знает о замене панелей вручную.
-        const panels = last.items
+        const panels = sh.items
             .filter(i => !i.removed && i.unit === "buc" && (i.rateId === "pv_module_wp" || /^panou/i.test(i.name || "")))
             .reduce((s, i) => s + Number(i.quantity || 0), 0);
         return {
-            result: { ...last.result, optionalItems: last.optionalItems },
-            info: { ...last.info, panels: panels || last.info.panels },
+            result: { ...sh.result, optionalItems: sh.optionalItems },
+            info: { ...sh.info, panels: panels || sh.info.panels },
             meta: {
                 client: state.client, location: state.location, leadId: state.leadId, goal: state.goal,
                 validDays: state.validDays || 7, manager: "Nikita Ungureanu", managerRole: "Project Manager",
                 managerPhone: state.managerPhone,
-                acKw: Number(state.inverterKw) > 0 ? Number(state.inverterKw) : 0,
+                acKw: !isBessSheet(sh.sheet) && Number(state.inverterKw) > 0 ? Number(state.inverterKw) : 0,
                 roofType: state.segment === "home" && state.product !== "bess" ? state.roofType : "",
                 roofMaterial: state.segment === "home" && state.product !== "bess" ? state.roofMaterial : ""
             }
@@ -677,9 +953,20 @@
     });
 
     // Оффер всегда виден в конце страницы и собирается заново при каждом пересчёте.
+    // Листы с галочкой «в оффере» — отдельными офферами друг под другом (в PDF A4 — каждый с новой страницы);
+    // фото объектов — под последним листом.
     function renderOffer() {
         if (!last) return;
-        $("offerDoc").innerHTML = OFFER.render(offerState(), offerOpts({ editable: true }));
+        const list = (last.sheets || [last]).filter(x => x.inOffer !== false);
+        if (!list.length) { $("offerDoc").innerHTML = '<p class="hint">Ни один лист не отмечен «в оффере» — отметь в шаге ③.</p>'; return; }
+        const bessCount = list.filter(x => isBessSheet(x.sheet)).length;
+        let b = 0;
+        $("offerDoc").innerHTML = list.map((x, i) => OFFER.render(offerState(x), offerOpts({
+            editable: true,
+            numberSuffix: list.length > 1 ? String(i + 1) : "",
+            variant: isBessSheet(x.sheet) && bessCount > 1 ? ++b : 0,
+            references: i === list.length - 1 ? chosenReferences() : []
+        }))).join("");
     }
 
 
@@ -690,17 +977,19 @@
         return `OptiSolar_oferta_${id}${d.getFullYear()}${p(d.getMonth() + 1)}${p(d.getDate())}`;
     }
 
-    // Выгружается тот оффер, что на странице, вместе с ручными правками текста.
-    function offerClone(format) {
-        const doc = $("offerDoc").querySelector(".offer-document").cloneNode(true);
-        doc.querySelectorAll("[contenteditable]").forEach(el => el.removeAttribute("contenteditable"));
-        doc.classList.add(format === "a4" ? "offer-a4" : "offer-narrow");
-        return doc;
+    // Выгружается тот оффер, что на странице, вместе с ручными правками текста; каждый лист — отдельно.
+    function offerClones(format) {
+        return Array.from($("offerDoc").querySelectorAll(".offer-document")).map(el => {
+            const doc = el.cloneNode(true);
+            doc.querySelectorAll("[contenteditable]").forEach(x => x.removeAttribute("contenteditable"));
+            doc.classList.add(format === "a4" ? "offer-a4" : "offer-narrow");
+            return doc;
+        });
     }
 
     // ---------- просмотр перед сохранением ----------
     // В окне — ровно то, что попадёт в файл: тот же холст и та же разбивка по листам.
-    const preview = { format: "a4", canvas: null, busy: false };
+    const preview = { format: "a4", canvases: null, busy: false };
 
     function pdfReady() {
         if (window.html2canvas && window.jspdf) return true;
@@ -710,7 +999,7 @@
 
     async function showPreview(format) {
         preview.format = format === "mobile" ? "mobile" : "a4";
-        preview.canvas = null;
+        preview.canvases = null;
         setChips("previewFormat", preview.format);
         $("previewStatus").textContent = "";
         $("btnPreviewPng").hidden = preview.format !== "mobile";
@@ -721,15 +1010,20 @@
         if (!pdfReady()) return;
         const wanted = preview.format;
         try {
-            const canvas = await OFFER.toCanvas(offerClone(wanted), wanted === "a4" ? 794 : 430);
+            const clones = offerClones(wanted);
+            if (!clones.length) { body.innerHTML = '<p class="pv-msg">Ни один лист не отмечен «в оффере».</p>'; return; }
+            const canvases = [];
+            for (const node of clones) canvases.push(await OFFER.toCanvas(node, wanted === "a4" ? 794 : 430));
             if (preview.format !== wanted) return; // пока готовили, переключили формат
-            preview.canvas = canvas;
+            // A4: каждый лист оффера с новой страницы; телефон — листы друг под другом
+            preview.canvases = wanted === "a4" ? canvases : [OFFER.stackCanvases(canvases)];
+            const canvas = preview.canvases[0];
             if (wanted === "a4") {
                 const { A4 } = OFFER;
-                const pages = OFFER.a4Pages(canvas);
+                const pages = canvases.flatMap(cnv => OFFER.a4Pages(cnv).map(pg => ({ ...pg, cnv })));
                 body.innerHTML = pages.map((p, i) => `
                   <div class="pv-page">
-                    <img src="${OFFER.pageImage(canvas, p, 0.85)}" alt="Лист ${i + 1}"
+                    <img src="${OFFER.pageImage(p.cnv, p, 0.85)}" alt="Лист ${i + 1}"
                          style="left:${p.x / A4.w * 100}%;top:${p.top / A4.h * 100}%;width:${p.w / A4.w * 100}%;height:${p.hMm / A4.h * 100}%">
                     <span class="pv-no">${i + 1} / ${pages.length}</span>
                   </div>`).join("");
@@ -755,19 +1049,19 @@
     function closePreview() {
         $("previewModal").hidden = true;
         document.body.classList.remove("no-scroll");
-        preview.canvas = null;
+        preview.canvases = null;
     }
 
     async function savePreview(kind) {
         const status = $("previewStatus");
-        if (!preview.canvas) { status.textContent = "Просмотр ещё готовится."; return; }
+        if (!preview.canvases) { status.textContent = "Просмотр ещё готовится."; return; }
         try {
             let blob, name;
             if (kind === "png") {
-                blob = await new Promise(r => preview.canvas.toBlob(r, "image/png"));
+                blob = await new Promise(r => preview.canvases[0].toBlob(r, "image/png"));
                 name = fileBase() + "_tel.png";
             } else {
-                blob = OFFER.pdfFromCanvas(preview.canvas, preview.format).output("blob");
+                blob = OFFER.pdfFromCanvases(preview.canvases, preview.format).output("blob");
                 name = fileBase() + (preview.format === "a4" ? "_A4.pdf" : "_tel.pdf");
             }
             const how = await OFFER.deliver(blob, name, kind === "share" ? "share" : "download");
@@ -791,10 +1085,12 @@
     function prepareHandoff() {
         handoffPacked = null;
         if (!IN_TG) return;
-        const doc = $("offerDoc").querySelector(".offer-document");
-        const offer = doc ? doc.cloneNode(true) : null;
-        if (offer) offer.querySelectorAll("img").forEach(img => img.removeAttribute("src")); // логотип есть и в браузере
-        const job = SYNC.pack(JSON.stringify({ v: 1, state, rb: rbOverrides, offer: offer ? offer.outerHTML : "" }));
+        const offers = Array.from($("offerDoc").querySelectorAll(".offer-document")).map(doc => {
+            const offer = doc.cloneNode(true);
+            offer.querySelectorAll("img").forEach(img => img.removeAttribute("src")); // логотип есть и в браузере
+            return offer.outerHTML;
+        });
+        const job = SYNC.pack(JSON.stringify({ v: 1, state, rb: rbOverrides, offer: offers[0] || "", offers }));
         prepareHandoff.job = job;
         job.then(p => { if (prepareHandoff.job === job) handoffPacked = p; })
             .catch(err => { $("previewStatus").textContent = "Не получилось подготовить ссылку: " + err.message; });
@@ -846,8 +1142,8 @@
             if (data.rb && typeof data.rb === "object" && !Array.isArray(data.rb)) { rbOverrides = data.rb; applyRatebook(); }
             fillForm();
             recalc();
-            const offer = data.offer ? cleanOffer(data.offer) : null;
-            if (offer) $("offerDoc").replaceChildren(offer);
+            const list = (Array.isArray(data.offers) ? data.offers : [data.offer]).filter(Boolean).map(cleanOffer).filter(Boolean);
+            if (list.length) $("offerDoc").replaceChildren(...list);
             openPreview(m[1]);
             $("previewStatus").textContent = "Расчёт из Telegram. «Поделиться PDF» → Viber, WhatsApp или «Сохранить в Файлы».";
         } catch (err) {
@@ -878,8 +1174,14 @@
     // ---------- записка для КД ----------
     function noteText() {
         const { result, info, items } = last;
+        const sheetLines = last.sheets.length > 1 ? ["Листы (каждый — отдельный оффер):", ...last.sheets.map(x => {
+            const r = x.result, inf = x.info;
+            const per = inf.pvKwp > 0 ? `${fmt0(r.commercialPrice / inf.pvKwp)} MDL/кВтп` : inf.bessKwh > 0 ? `${fmt0(r.commercialPrice / inf.bessKwh)} MDL/кВт·ч` : "";
+            return `- ${x.name}${x.inOffer ? "" : " (не в оффере)"}: ${inf.title}, ${fmt0(r.priceWithVat)} MDL с TVA, маржа ${r.effectiveMargin.toFixed(1)}%${per ? ", " + per + " без TVA" : ""}`;
+        }), "", `Ниже — лист ${last.name}:`] : [];
         const est = items.filter(i => i.status === "est");
         const lines = [
+            ...sheetLines,
             `Расчёт ${info.title} — ${state.client || "клиент"}${state.location ? ", " + state.location : ""}${state.leadId ? " (" + state.leadId + ")" : ""}`,
             `Сегмент: ${state.segment === "home" ? "дом" : "бизнес"}, подключение ${info.voltage === "0.4" ? "0,4" : info.voltage} кВ`,
             ...(info.equip && (info.equip.inverter || info.equip.battery) ? [`Оборудование: ${[info.equip.inverter, info.equip.pvInverter, info.equip.battery].filter(Boolean).join(" · ")} (${info.equip.source}, ${info.equip.level})`] : []),
@@ -1042,7 +1344,9 @@
     $("btnExportInput").addEventListener("click", () => {
         const { items, info } = last;
         const fin = window.RATEBOOK_ACTIVE.financial;
-        const station = state.product === "pv" ? (state.zeroExport ? "zero-export" : "solar-pv") : state.product === "bess" ? "bess" : (state.zeroExport ? "solar-bess-zero" : "hybrid-bess");
+        // в режиме листов выгружается активный лист: СЭС или вариант BESS
+        const product = last.sheet === "pv" ? "pv" : isBessSheet(last.sheet) ? "bess" : state.product;
+        const station = product === "pv" ? (state.zeroExport ? "zero-export" : "solar-pv") : product === "bess" ? "bess" : (state.zeroExport ? "solar-bess-zero" : "hybrid-bess");
         const out = {
             lead_id: state.leadId || "", name: info.title, client: state.client, location: state.location, goal: state.goal || undefined,
             station, voltage: info.voltage, currency: "MDL",
