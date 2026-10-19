@@ -632,6 +632,7 @@
         const ref = dbRef(value, it);
         if (!ref) return;
         if (ref.category !== it.category) delete ref.category;
+        if ((ref.category || it.category) === "electrical") ref.vatPct = 0; // монтаж всегда без TVA
         const st = S();
         if (it.extraId) {
             const x = (st.extra || []).find(y => y.extraId === it.extraId);
@@ -821,6 +822,7 @@
         $("addCat").innerHTML = CAT_ORDER.map(c => `<option value="${c}">${CAT_RU[c]}</option>`).join("");
         $("addCat").value = "materials";
         $("addVat").innerHTML = vatOptions(rb.vatPct);
+        $("addVat").value = String(rb.vatPct);
         $("addCostLabel").textContent = `Цена, ${curName()} без TVA`;
         ["addName", "addCost", "addKw"].forEach(id => { $(id).value = ""; $(id).classList.remove("bad"); });
         $("addQty").value = "1";
@@ -857,6 +859,7 @@
             if (["bat", "batpm", "guard"].includes(r.eq.kind)) $("addSection").value = "bess";
             $("addName").value = state.lang === "ru" ? r.ru : r.ro;
             $("addCat").value = r.cat;
+            $("addVat").value = r.cat === "electrical" ? "0" : String(rb.vatPct);
             $("addUnit").value = r.unit;
             $("addKwBox").hidden = true;
             addRateCost();
@@ -866,6 +869,7 @@
         const obj = r.price && typeof r.price === "object";
         $("addName").value = state.lang === "ru" ? r.ru : r.ro;
         $("addCat").value = r.cat;
+        $("addVat").value = r.cat === "electrical" ? "0" : String(rb.vatPct);
         $("addUnit").value = r.unit;
         $("addKwBox").hidden = !obj;
         if (obj && !$("addKw").value) $("addKw").value = state.product === "pv" ? state.pvKwp : state.bessKw || state.pvKwp || 0;
@@ -874,6 +878,8 @@
         $("addHint").textContent = `${rb.statusLabels[r.status]} · ${r.src} · ${r.date} · в базе ${r.cur} ${vat}, здесь — ${curName()} без TVA по курсу BNM.`;
     });
     $("addKw").addEventListener("input", addRateCost);
+    // электромонтаж — всегда без TVA (правило 2026-10-19)
+    $("addCat").addEventListener("change", () => { $("addVat").value = $("addCat").value === "electrical" ? "0" : String(window.RATEBOOK_ACTIVE.vatPct); });
     $("btnAddItem").addEventListener("click", () => {
         if ($("addPanel").hidden) openAddPanel();
         else $("addPanel").hidden = true;

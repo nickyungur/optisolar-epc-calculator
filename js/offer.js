@@ -12,7 +12,9 @@
     const GROUPS = [
         { key: "design", cats: ["engineering"], ro: "Proiectare și inginerie", ru: "Проектирование и инжиниринг" },
         { key: "materials", cats: ["materials"], ro: "Materiale (toate materialele incluse)", ru: "Материалы (все материалы включены)" },
-        { key: "works", cats: ["civil", "electrical"], ro: "Lucrări de construcție și montaj", ru: "Строительные и монтажные работы" },
+        // монтаж — отдельной строкой: он без TVA, стройработы — с TVA (правило 2026-10-19)
+        { key: "civil", cats: ["civil"], ro: "Lucrări de construcție", ru: "Строительные работы" },
+        { key: "works", cats: ["electrical"], ro: "Lucrări de montaj", ru: "Монтажные работы" },
         { key: "logistics", cats: ["logistics"], ro: "Transport, livrare și logistică", ru: "Транспорт, доставка и логистика" },
         { key: "commissioning", cats: ["commissioning"], ro: "Punere în funcțiune", ru: "Пусконаладка" },
         { key: "grid", cats: ["grid"], ro: "Darea în exploatare și autorizări", ru: "Сдача в эксплуатацию и разрешения" }
@@ -34,7 +36,7 @@
             blockTotal: "Total {x} cu TVA", blockTotalNoVat: "Total {x}", grandTotal: "Total {x} cu TVA", grandTotalNoVat: "Total {x}",
             note: "NOTĂ",
             n1: "Oferta comercială este valabilă timp de {days} zile calendaristice de la data emiterii.",
-            n2: "Prețurile sunt exprimate în {cur}, {vat}.", vatIn: "cu TVA inclus", vatOut: "fără TVA",
+            n2: "Prețurile sunt exprimate în {cur}, {vat}.", vatIn: "cu TVA inclus", vatOut: "fără TVA", nMontaj: "Lucrările de montaj se facturează fără TVA.",
             nFx: "Curs BNM: 1 EUR = {fx} MDL ({date}). Plata se efectuează în MDL la cursul oficial BNM din ziua plății.",
             refs: "PROIECTE REALIZATE DE OPTISOLAR",
             n3: "Oferta include echipamentele, materialele și serviciile specificate în tabel.",
@@ -63,7 +65,7 @@
             blockTotal: "Итого {x} с TVA", blockTotalNoVat: "Итого {x}", grandTotal: "Итого {x} с TVA", grandTotalNoVat: "Итого {x}",
             note: "ПРИМЕЧАНИЕ",
             n1: "Предложение действует {days} календарных дней с даты выдачи.",
-            n2: "Цены указаны в {cur}, {vat}.", vatIn: "с TVA", vatOut: "без TVA",
+            n2: "Цены указаны в {cur}, {vat}.", vatIn: "с TVA", vatOut: "без TVA", nMontaj: "Монтажные работы — без TVA.",
             nFx: "Курс BNM: 1 EUR = {fx} MDL ({date}). Оплата в MDL по официальному курсу BNM на день оплаты.",
             refs: "РЕАЛИЗОВАННЫЕ ОБЪЕКТЫ OPTISOLAR",
             n3: "В предложение входят оборудование, материалы и работы, указанные в таблице.",
@@ -272,7 +274,8 @@
 
         const notes = [
             t.n1.replace("{days}", days),
-            t.n2.replace("{cur}", cur).replace("{vat}", vatOn ? t.vatIn : t.vatOut) + (eur ? " " + t.nFx.replace("{fx}", String(opts.fx).replace(".", ",")).replace("{date}", opts.fxDate || "") : ""),
+            t.n2.replace("{cur}", cur).replace("{vat}", vatOn ? t.vatIn : t.vatOut)
+                + (vatOn && live.some(i => i.category === "electrical" && !(Number(i.vatPct) > 0)) ? " " + t.nMontaj : "") + (eur ? " " + t.nFx.replace("{fx}", String(opts.fx).replace(".", ",")).replace("{date}", opts.fxDate || "") : ""),
             t.n3, t.n4, t.n5, t.n6
         ];
         const manager = meta.manager || "Nikita Ungureanu";

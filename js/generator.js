@@ -356,7 +356,8 @@
                 quantity: round2(qty),
                 cost: round2(unitCost),
                 coefficient: book.coefficients[seg][rate.cat] ?? 1.2,
-                vatPct: book.vatPct,
+                // электромонтаж — всегда без TVA (правило пользователя 2026-10-19)
+                vatPct: rate.cat === "electrical" ? 0 : book.vatPct,
                 rateId,
                 status: rate.status,
                 src: rate.src,
