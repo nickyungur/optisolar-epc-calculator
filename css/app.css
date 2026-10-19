@@ -292,6 +292,12 @@ body.no-scroll { overflow: hidden; }
 .offer-summary .offer-summary-grand strong { font-size: 23px; }
 .offer-summary .offer-summary-perkw { border: 0; font-size: 12px; color: #59616d; padding-top: 6px; }
 .offer-summary .offer-summary-perkw strong { font-size: 13px; color: #343a40; }
+.offer-summary .offer-summary-perkw + .offer-summary-perkw { padding-top: 0; }
+/* Два блока оффера: СЭС и BESS (позиции с section) */
+.offer-block { margin-top: 6px; }
+.offer-block-title { display: flex; align-items: center; gap: 10px; margin: 0 0 10px; padding-bottom: 6px; border-bottom: 2px solid #ffca3d; font-size: 15px; font-weight: 800; color: #151515; }
+.offer-block-letter { flex: none; display: inline-flex; align-items: center; justify-content: center; width: 26px; height: 26px; border-radius: 6px; background: #ffca3d; font-size: 14px; }
+.offer-summary-all .offer-summary { border: 2px solid #151515; }
 .offer-bottom-grid { display: grid; grid-template-columns: 1.3fr .8fr; gap: 20px; align-items: end; }
 .offer-bottom-left { display: grid; gap: 12px; }
 .offer-note-card ol { margin: 0; padding: 10px 18px 12px 33px; font-size: 11px; line-height: 1.45; }
@@ -366,3 +372,8 @@ body.no-scroll { overflow: hidden; }
 /* Импорт расчёта (calc-input.json от Claude) во вкладке «Проекты» */
 .import-box textarea { width: 100%; min-height: 70px; font: 12px/1.35 ui-monospace, Menlo, monospace; }
 .import-box .buttons { margin-top: 8px; }
+
+/* Оборудование по моделям: на телефоне инвертор и аккумулятор — во всю ширину (названия моделей длинные) */
+@media (max-width: 600px) {
+    .eq-grid #eqInverterBox, .eq-grid #eqBatteryBox { grid-column: 1 / -1; }
+}
