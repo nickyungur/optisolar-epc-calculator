@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>OptiSolar · Калькулятор КП</title>
-<link rel="stylesheet" href="css/app.css?v=20261019-2">
+<link rel="stylesheet" href="css/app.css?v=20261019-11">
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 </head>
 <body>
@@ -50,8 +50,9 @@
         <div class="field" data-show="pv"><label for="powerIncreasePrice">Опционально: увеличение мощности, MDL</label><input id="powerIncreasePrice" inputmode="decimal" value="0" placeholder="0"></div>
         <div class="field" data-show="bess-power"><label for="bessKw">BESS, кВт</label><input id="bessKw" inputmode="decimal" value="500"></div>
         <div class="field" data-show="bess"><label for="bessKwh">BESS, кВт·ч</label><input id="bessKwh" inputmode="decimal" value="1000"></div>
+        <div class="field field-wide" data-show="bess"><label for="bessPrice">Цена BESS без TVA</label><div class="money-input money-input-3"><input id="bessPrice" inputmode="decimal" value="0" placeholder="По смете"><select id="bessPriceUnit" aria-label="За что цена BESS"><option value="kw">за кВт</option><option value="kwh">за кВт·ч</option></select><select id="bessPriceCurrency" aria-label="Валюта цены BESS"><option value="MDL">MDL</option><option value="EUR">EUR</option></select></div></div>
       </div>
-      <div class="sub" data-show="equip">Оборудование</div>
+      <div class="sub" data-show="equip" id="eqTitle">Оборудование</div>
       <div class="grid2 eq-grid" data-show="equip">
         <div class="field" data-show="home">
           <label>Фазы на объекте</label>
@@ -102,7 +103,7 @@
         <div class="field" data-show="mv"><label for="cableMvM">Линия СН, м</label><input id="cableMvM" inputmode="decimal" value="300"></div>
       </div>
       <label class="check" data-show="zero"><input type="checkbox" id="zeroExport"> Zero Export (без выдачи в сеть)</label>
-      <p class="note">Мощность инвертора задаётся отдельно; 0 — автоматический подбор. Для домашней системы с аккумулятором отдельного поля мощности BESS нет: она берётся от гибридного инвертора, подобранного по ёмкости батареи и доступным типоразмерам. Цена за кВтп без TVA задаёт бюджет СЭС; строки сметы распределяются пропорционально текущим долям. Если цена 0, остаётся расчёт по ставкам. Смена мощности, клиента, системы или напряжения пересобирает позиции и сбрасывает правки строк. Добавленные вручную позиции остаются.</p>
+      <p class="note">Мощность инвертора задаётся отдельно; 0 — автоматический подбор. Для домашней системы с аккумулятором отдельного поля мощности BESS нет: она берётся от гибридного инвертора, подобранного по ёмкости батареи и доступным типоразмерам. Цена за кВтп без TVA задаёт бюджет СЭС; строки сметы распределяются пропорционально текущим долям. Если цена 0, остаётся расчёт по ставкам. Цена BESS без TVA (за кВт или за кВт·ч) так же подгоняет позиции накопителя; у каждого варианта BESS она своя. Смена мощности, клиента, системы или напряжения пересобирает позиции и сбрасывает правки строк. Добавленные вручную позиции остаются.</p>
     </div>
 
     <!-- ② КЛИЕНТ -->
@@ -135,6 +136,7 @@
           <button type="button" class="btn" id="btnResetItems">Сбросить правки</button>
         </div>
       </div>
+      <div class="sheets" id="sheetsBar" hidden></div>
       <div id="addPanel" class="add-panel" hidden>
         <div class="field"><label for="addRate">Позиция из ставок</label><select id="addRate"></select></div>
         <div class="grid2">
@@ -209,7 +211,7 @@
       </div>
       <div id="pvKwPrice" class="per-unit" hidden></div>
       <div class="sum-row">
-        <div class="sum-total"><span>Итого с TVA</span><b id="sumGross">—</b></div>
+        <div class="sum-total"><span id="sumLabel">Итого с TVA</span><b id="sumGross">—</b></div>
         <span class="pill" id="marginPill">—</span>
         <div class="chips cur-chips" data-name="currency">
           <button type="button" data-value="MDL" class="on">MDL</button>
@@ -317,10 +319,10 @@
 <script src="js/calculator.js"></script>
 <script src="js/logo.js"></script>
 <script src="js/ratebook.js?v=20261019-3"></script>
-<script src="js/generator.js?v=20261019-5"></script>
+<script src="js/generator.js?v=20261019-6"></script>
 <script src="js/references.js?v=20261014-18"></script>
-<script src="js/offer.js?v=20261019-5"></script>
+<script src="js/offer.js?v=20261019-6"></script>
 <script src="js/sync.js?v=20261014-18"></script>
-<script src="js/main.js?v=20261019-5"></script>
+<script src="js/main.js?v=20261019-9"></script>
 </body>
 </html>
