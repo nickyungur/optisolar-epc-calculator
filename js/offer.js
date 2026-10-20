@@ -32,6 +32,8 @@
             subtotal: "Total fără TVA", vat: "TVA totală", vatNa: "TVA (neaplicabilă)", total: "Total cu TVA", totalNoVat: "Total",
             optional: "Opțional", battery: "Acumulator", powerIncrease: "Serviciu de majorare a puterii", pricePerKw: "Preț per kW cu TVA",
             pricePerKwNet: "Preț per kW fără TVA", pricePerKwh: "Preț per kWh cu TVA", pricePerKwhNet: "Preț per kWh fără TVA",
+            pricePerKwPv: "Preț per kW centrală ({x}) cu TVA", pricePerKwPvNet: "Preț per kW centrală ({x}) fără TVA",
+            pricePerKwAll: "Preț per kW total ({x}) cu TVA", pricePerKwAllNet: "Preț per kW total ({x}) fără TVA",
             blockPv: "Centrală fotovoltaică", blockBess: "Sistem de stocare a energiei (BESS)", blockBat: "Acumulator (stocarea energiei)", blockCommon: "Lucrări comune",
             blockTotal: "Total {x} cu TVA", blockTotalNoVat: "Total {x}", grandTotal: "Total {x} cu TVA", grandTotalNoVat: "Total {x}",
             note: "NOTĂ",
@@ -61,6 +63,8 @@
             subtotal: "Итого без TVA", vat: "TVA", vatNa: "TVA (не применяется)", total: "Итого с TVA", totalNoVat: "Итого",
             optional: "Опционально", battery: "Аккумулятор", powerIncrease: "Услуга по увеличению мощности", pricePerKw: "Цена за киловатт с TVA",
             pricePerKwNet: "Цена за киловатт без TVA", pricePerKwh: "Цена за кВт·ч с TVA", pricePerKwhNet: "Цена за кВт·ч без TVA",
+            pricePerKwPv: "Цена за кВт СЭС ({x}) с TVA", pricePerKwPvNet: "Цена за кВт СЭС ({x}) без TVA",
+            pricePerKwAll: "Цена за кВт всего ({x}) с TVA", pricePerKwAllNet: "Цена за кВт всего ({x}) без TVA",
             blockPv: "Солнечная электростанция", blockBess: "Система накопления энергии (BESS)", blockBat: "Аккумулятор (накопление энергии)", blockCommon: "Общие работы",
             blockTotal: "Итого {x} с TVA", blockTotalNoVat: "Итого {x}", grandTotal: "Итого {x} с TVA", grandTotalNoVat: "Итого {x}",
             note: "ПРИМЕЧАНИЕ",
@@ -224,9 +228,9 @@
         // Блоки A — СЭС и B — аккумулятор / BESS (поле section у позиций: генератор и расчёт от Claude),
         // если блоков хотя бы два; иначе одна таблица
         const blocks = [
-            { key: "pv", name: t.blockPv, title: info.pvKwp > 0 ? powerTitle({ ...info, product: "pv" }, meta) : "", its: live.filter(i => i.section === "pv"), per: pvPer },
-            { key: "bess", name: info.segment === "home" ? t.blockBat : t.blockBess, title: info.bessKwh > 0 ? powerTitle({ ...info, product: "bess" }, meta).replace(/^BESS /, "") : "", its: live.filter(i => i.section === "bess"), per: bessPer },
-            { key: "common", name: t.blockCommon, title: "", its: live.filter(i => i.section !== "pv" && i.section !== "bess"), per: () => "" }
+            { key: "pv", name: t.blockPv, title: info.pvKwp > 0 ? powerTitle({ ...info, product: "pv" }, meta) : "", its: live.filter(i => i.section === "pv") },
+            { key: "bess", name: info.segment === "home" ? t.blockBat : t.blockBess, title: info.bessKwh > 0 ? powerTitle({ ...info, product: "bess" }, meta).replace(/^BESS /, "") : "", its: live.filter(i => i.section === "bess") },
+            { key: "common", name: t.blockCommon, title: "", its: live.filter(i => i.section !== "pv" && i.section !== "bess") }
         ].filter(b => b.its.length);
         const sectioned = blocks.length >= 2 && live.some(i => i.section === "pv" || i.section === "bess");
         if (!sectioned) blocks.length = 0;
@@ -255,6 +259,14 @@
 
         let tablesHtml;
         if (blocks.length) {
+            // Цена за kW — только в общем итоге (запрос 2026-10-20): станция (блок A) и всё вместе на kWp СЭС;
+            // без СЭС — за kWh и kW накопителя
+            const pvBlock = blocks.find(b => b.key === "pv");
+            const allNet = result.commercialPrice, allGross = result.priceWithVat;
+            const finalPer = pvBlock && info.pvKwp > 0
+                ? perLines(sum(pvBlock.its, "totalSell"), sum(pvBlock.its, "totalWithVat"), t.pricePerKwPv.replace("{x}", pvBlock.letter), t.pricePerKwPvNet.replace("{x}", pvBlock.letter), info.pvKwp, "kWp") +
+                  perLines(allNet, allGross, t.pricePerKwAll.replace("{x}", letters), t.pricePerKwAllNet.replace("{x}", letters), info.pvKwp, "kWp")
+                : bessPer(allNet, allGross);
             tablesHtml = blocks.map((b, i) => {
                 const rows = tableBody(b.its) + (i === 0 ? optRows() : "");
                 const net = sum(b.its, "totalSell"), vat = sum(b.its, "vatAmount"), gross = sum(b.its, "totalWithVat");
@@ -262,10 +274,10 @@
   <section class="offer-block">
     <div${edc("offer-block-title")}><span class="offer-block-letter">${b.letter}</span> ${esc(b.name)}${b.title ? " — " + esc(b.title) : ""}</div>
     ${tableHtml(rows)}
-    ${summaryBox(net, vat, gross, (vatOn ? t.blockTotal : t.blockTotalNoVat).replace("{x}", b.letter), b.per(net, gross))}
+    ${summaryBox(net, vat, gross, (vatOn ? t.blockTotal : t.blockTotalNoVat).replace("{x}", b.letter), "")}
   </section>`;
-            }).join("") + summaryBox(result.commercialPrice, result.vatAmount, result.priceWithVat,
-                (vatOn ? t.grandTotal : t.grandTotalNoVat).replace("{x}", letters), "", "offer-summary-all");
+            }).join("") + summaryBox(allNet, result.vatAmount, allGross,
+                (vatOn ? t.grandTotal : t.grandTotalNoVat).replace("{x}", letters), finalPer, "offer-summary-all");
         } else {
             const per = info.product === "bess" ? bessPer(result.commercialPrice, result.priceWithVat)
                 : (info.pvKwp > 0 ? pvPer(result.commercialPrice, result.priceWithVat) : "");
