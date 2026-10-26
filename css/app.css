@@ -403,3 +403,8 @@ body.no-scroll { overflow: hidden; }
 /* Цена BESS: число + «за кВт / кВт·ч» + валюта */
 .money-input.money-input-3 { grid-template-columns: minmax(0, 1fr) 108px 76px; }
 .field.field-wide { grid-column: span 2; }
+
+/* Курс EUR на дату оффера (шаг ④) */
+.fx-row { display: flex; gap: 8px; align-items: center; }
+.fx-row input { max-width: 140px; }
+.fx-field .hint { margin-top: 4px; }
