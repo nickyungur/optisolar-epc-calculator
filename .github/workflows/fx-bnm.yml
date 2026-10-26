@@ -1,0 +1,70 @@
+# Официальный курс BNM на сегодня → fx.json в корне репозитория.
+# Калькулятор берёт его для пересчёта оффера в EUR и приписки «Curs BNM … (дата)».
+# Себестоимость позиций это не меняет: она считается по курсам из «Ставок».
+name: BNM exchange rate
+
+on:
+  schedule:
+    - cron: "15 4 * * *"    # ≈ 07:15 по Кишинёву (летом 06:15) — курс на сегодня
+    - cron: "15 9 * * *"    # повтор днём, если утром BNM не ответил
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: fx-bnm
+  cancel-in-progress: false
+
+jobs:
+  fx:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Курс BNM на сегодня
+        run: |
+          python3 - <<'PY'
+          import json, urllib.request, xml.etree.ElementTree as ET
+          from datetime import datetime, timezone
+          from zoneinfo import ZoneInfo
+
+          today = datetime.now(ZoneInfo("Europe/Chisinau")).date()
+          url = "https://www.bnm.md/ro/official_exchange_rates?get_xml=1&date=" + today.strftime("%d.%m.%Y")
+          req = urllib.request.Request(url, headers={"User-Agent": "optisolar-epc-calculator (GitHub Actions)"})
+          root = ET.fromstring(urllib.request.urlopen(req, timeout=30).read())
+
+          rates = {}
+          for v in root.findall("Valute"):
+              code = (v.findtext("CharCode") or "").strip()
+              if code in ("EUR", "USD", "RON", "UAH"):
+                  rates[code] = round(float(v.findtext("Value")) / float(v.findtext("Nominal") or 1), 4)
+          if not rates.get("EUR"):
+              raise SystemExit("в ответе BNM нет курса EUR")
+
+          day = datetime.strptime(root.get("Date") or today.strftime("%d.%m.%Y"), "%d.%m.%Y").date()
+          out = {"src": "BNM", "date": day.strftime("%d.%m.%Y"), "iso": day.isoformat(), **rates,
+                 "fetched_at": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"), "url": url}
+          try:
+              old = json.load(open("fx.json", encoding="utf-8"))
+          except Exception:
+              old = {}
+          if {k: old.get(k) for k in ("iso", "EUR", "USD", "RON", "UAH")} == {k: out.get(k) for k in ("iso", "EUR", "USD", "RON", "UAH")}:
+              print("курс не изменился:", out["date"], out["EUR"])
+          else:
+              with open("fx.json", "w", encoding="utf-8") as f:
+                  json.dump(out, f, ensure_ascii=False, indent=2)
+                  f.write("\n")
+              print("новый курс:", out["date"], out["EUR"])
+          PY
+
+      - name: Сохранить в репозиторий
+        run: |
+          if git diff --quiet -- fx.json && git ls-files --error-unmatch fx.json >/dev/null 2>&1; then
+            echo "без изменений"; exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add fx.json
+          git commit -m "BNM: курс EUR на $(python3 -c 'import json;print(json.load(open("fx.json"))["date"])')"
+          git push
