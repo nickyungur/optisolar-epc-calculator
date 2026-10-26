@@ -2,7 +2,7 @@
 // ОФФЕР — дизайн исходного калькулятора (app/): белый лист, логотип,
 // жёлтые акценты, карточка клиента и объекта, таблица с TVA.
 // В клиентском оффере нет себестоимости, коэффициентов и маржи.
-// Валюта — MDL или EUR (пересчёт по курсу BNM из ratebook).
+// Валюта — MDL или EUR (пересчёт по курсу BNM на дату оффера: fx.json, его обновляет задание GitHub).
 // =========================================
 
 (function () {
@@ -40,6 +40,7 @@
             n1: "Oferta comercială este valabilă timp de {days} zile calendaristice de la data emiterii.",
             n2: "Prețurile sunt exprimate în {cur}, {vat}.", vatIn: "cu TVA inclus", vatOut: "fără TVA", nMontaj: "Lucrările de montaj se facturează fără TVA.",
             nFx: "Curs BNM: 1 EUR = {fx} MDL ({date}). Plata se efectuează în MDL la cursul oficial BNM din ziua plății.",
+            nFxManual: "Curs: 1 EUR = {fx} MDL ({date}). Plata se efectuează în MDL la cursul oficial BNM din ziua plății.",
             refs: "PROIECTE REALIZATE DE OPTISOLAR",
             n3: "Oferta include echipamentele, materialele și serviciile specificate în tabel.",
             n4: "Preț estimativ: valoarea exactă se confirmă după vizita tehnică la obiect.",
@@ -71,6 +72,7 @@
             n1: "Предложение действует {days} календарных дней с даты выдачи.",
             n2: "Цены указаны в {cur}, {vat}.", vatIn: "с TVA", vatOut: "без TVA", nMontaj: "Монтажные работы — без TVA.",
             nFx: "Курс BNM: 1 EUR = {fx} MDL ({date}). Оплата в MDL по официальному курсу BNM на день оплаты.",
+            nFxManual: "Курс: 1 EUR = {fx} MDL ({date}). Оплата в MDL по официальному курсу BNM на день оплаты.",
             refs: "РЕАЛИЗОВАННЫЕ ОБЪЕКТЫ OPTISOLAR",
             n3: "В предложение входят оборудование, материалы и работы, указанные в таблице.",
             n4: "Цена ориентировочная: точная сумма — после технического выезда на объект.",
@@ -148,7 +150,7 @@
         return parts.join(" + ") || "Proiect energetic";
     }
 
-    // state: { result, info, meta }; opts: { lang, logo, draft, now, currency, fx, fxDate, editable, number }
+    // state: { result, info, meta }; opts: { lang, logo, draft, now, currency, fx, fxDate, fxSrc (BNM | manual | ratebook), editable, number }
     function render(state, opts) {
         const lang = opts.lang === "ru" ? "ru" : "ro";
         const t = T[lang];
@@ -287,7 +289,7 @@
         const notes = [
             t.n1.replace("{days}", days),
             t.n2.replace("{cur}", cur).replace("{vat}", vatOn ? t.vatIn : t.vatOut)
-                + (vatOn && live.some(i => i.category === "electrical" && !(Number(i.vatPct) > 0)) ? " " + t.nMontaj : "") + (eur ? " " + t.nFx.replace("{fx}", String(opts.fx).replace(".", ",")).replace("{date}", opts.fxDate || "") : ""),
+                + (vatOn && live.some(i => i.category === "electrical" && !(Number(i.vatPct) > 0)) ? " " + t.nMontaj : "") + (eur ? " " + (opts.fxSrc === "manual" ? t.nFxManual : t.nFx).replace("{fx}", String(opts.fx).replace(".", ",")).replace("{date}", opts.fxDate || "") : ""),
             t.n3, t.n4, t.n5, t.n6
         ];
         const manager = meta.manager || "Nikita Ungureanu";

@@ -14,6 +14,7 @@
     const KEY_RB_AT = "epc2_ratebook_at";           // когда правили ставки — для синхронизации
     const KEY_STATE = "epc2_state";
     const KEY_PROJECTS = "epc2_projects";
+    const KEY_FX = "epc2_fx_bnm";                    // последний курс BNM из fx.json
     const KEY_PROJECTS_DEL = "epc2_projects_deleted"; // удалены без связи — убрать из облака
     const LOGO = window.OPTISOLAR_LOGO || "img/optisolar-logo.png";
     const headerLogo = document.querySelector(".bar-logo");
@@ -90,7 +91,8 @@
         // листы бизнеса с накопителем: СЭС + варианты BESS, у каждого свои позиции, правки и итог
         bessVariants: null, bessCur: "", sheet: "pv", pvInOffer: true,
         bessPrice: 0, bessPriceUnit: "kw", bessPriceCurrency: "MDL",   // цена BESS без TVA: подгоняет позиции накопителя
-        manual: false       // позиции импортированы из calc-input.json — генератор не добавляет свои
+        manual: false,      // позиции импортированы из calc-input.json — генератор не добавляет свои
+        fxManual: null      // курс EUR вручную на дату оффера: { EUR, iso }; на другой день не действует
     };
     let state = { ...defaults, ...load(KEY_STATE, {}) };
     let last = null;
@@ -101,9 +103,48 @@
         const n = Number(s);
         return Number.isFinite(n) ? n : NaN;
     };
-    // ---------- валюта показа: MDL или EUR по курсу BNM из ставок ----------
-    // Внутри всё считается в MDL; EUR — только пересчёт на экране и в оффере.
-    const eurRate = () => Number(window.RATEBOOK_ACTIVE.fx.EUR) || 1;
+    // ---------- курс EUR на дату оффера ----------
+    // Официальный курс BNM на сегодня раз в день кладёт в репозиторий задание GitHub
+    // (.github/workflows/fx-bnm.yml → fx.json). По нему — пересчёт в EUR на экране и в оффере и приписка
+    // «Curs BNM … (дата)». На сегодня курс можно поправить руками (шаг ④).
+    // Себестоимость позиций в EUR/USD считается по курсам из «Ставок» — их меняют только вручную.
+    // Внутри всё считается в MDL.
+    const FX_URLS = ["https://raw.githubusercontent.com/nickyungur/optisolar-epc-calculator/main/fx.json", "fx.json"];
+    let fxBnm = load(KEY_FX, null);
+    function todayIso() {
+        const d = new Date();
+        const p = n => String(n).padStart(2, "0");
+        return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
+    }
+    function isoToRo(iso) {
+        const [y, m, d] = String(iso).split("-");
+        return `${d}.${m}.${y}`;
+    }
+    function offerFx() {
+        const m = state.fxManual;
+        if (m && m.iso === todayIso() && Number(m.EUR) > 0) return { rate: Number(m.EUR), date: isoToRo(m.iso), iso: m.iso, src: "manual" };
+        if (fxBnm && Number(fxBnm.EUR) > 0) return { rate: Number(fxBnm.EUR), date: fxBnm.date, iso: fxBnm.iso, src: "BNM" };
+        const rb = window.RATEBOOK_ACTIVE.fx;
+        return { rate: Number(rb.EUR) || 1, date: rb.date, iso: "", src: "ratebook" };
+    }
+    // true — курс изменился и расчёт надо перерисовать
+    async function loadBnmFx() {
+        for (const url of FX_URLS) {
+            try {
+                const r = await fetch(url, { cache: "no-store" });
+                if (!r.ok) continue;
+                const d = await r.json();
+                if (!d || !(Number(d.EUR) > 0) || !/^\d{4}-\d{2}-\d{2}$/.test(d.iso || "")) continue;
+                if (fxBnm && fxBnm.iso > d.iso) return false; // не откатываться на старый курс
+                const changed = !fxBnm || fxBnm.iso !== d.iso || Number(fxBnm.EUR) !== Number(d.EUR);
+                fxBnm = { src: "BNM", date: d.date || isoToRo(d.iso), iso: d.iso, EUR: Number(d.EUR) };
+                save(KEY_FX, fxBnm);
+                return changed;
+            } catch (_) { /* нет сети — остаётся последний известный курс */ }
+        }
+        return false;
+    }
+    const eurRate = () => offerFx().rate;
     const isEur = () => state.currency === "EUR";
     const cv = x => isEur() ? x / eurRate() : x;
     const curName = () => isEur() ? "EUR" : "MDL";
@@ -395,7 +436,7 @@
         const { result, gen, info } = last;
         const c = curName();
         const rb = window.RATEBOOK_ACTIVE;
-        $("fxHint").textContent = `Курс BNM ${rb.fx.date}: 1 EUR = ${String(rb.fx.EUR).replace(".", ",")} MDL`;
+        renderFx();
         $("sumGross").textContent = fmt0(cv(result.priceWithVat)) + " " + c;
         $("sumLabel").textContent = last.name ? `Итого с TVA · лист ${last.name}` : "Итого с TVA";
         $("sumNet").textContent = fmt0(cv(result.commercialPrice)) + " " + c;
@@ -936,9 +977,36 @@
     }
 
     function offerOpts(extra) {
-        const rb = window.RATEBOOK_ACTIVE;
-        return { lang: state.lang, logo: LOGO, currency: state.currency, fx: rb.fx.EUR, fxDate: rb.fx.date, references: chosenReferences(), ...extra };
+        const fx = offerFx();
+        return { lang: state.lang, logo: LOGO, currency: state.currency, fx: fx.rate, fxDate: fx.date, fxSrc: fx.src, references: chosenReferences(), ...extra };
     }
+
+    // Курс EUR в шаге ④ и в плашке итога
+    function renderFx() {
+        const fx = offerFx();
+        const rate = String(fx.rate).replace(".", ",");
+        const src = fx.src === "manual" ? "вручную" : fx.src === "BNM" ? "BNM" : "из «Ставок»";
+        $("fxHint").textContent = `Курс EUR ${src} на ${fx.date}: 1 EUR = ${rate} MDL`;
+        if (document.activeElement !== $("fxEur")) $("fxEur").value = rate;
+        $("btnFxBnm").hidden = fx.src !== "manual";
+        $("fxSrc").textContent = fx.src === "manual" ? `Вручную на ${fx.date}. Завтра снова возьмётся курс BNM.`
+            : fx.src === "BNM" && fx.iso !== todayIso() ? `Курс BNM за ${fx.date}: сегодняшний ещё не загрузился (нужен интернет).`
+            : fx.src === "BNM" ? `Официальный курс BNM на ${fx.date}. Он и попадёт в оффер в EUR.`
+            : `Курс BNM не загрузился — взят курс из «Ставок» (${fx.date}).`;
+    }
+
+    $("fxEur").addEventListener("change", () => {
+        const v = num($("fxEur").value);
+        if (!(v > 0)) { $("fxEur").classList.add("bad"); return; }
+        $("fxEur").classList.remove("bad");
+        state.fxManual = { EUR: v, iso: todayIso() };
+        recalc();
+    });
+    $("btnFxBnm").addEventListener("click", async () => {
+        state.fxManual = null;
+        await loadBnmFx();
+        recalc();
+    });
 
     // ---------- реализованные объекты в оффере ----------
     const REFERENCES = Array.isArray(window.EPC_REFERENCES) ? window.EPC_REFERENCES : [];
@@ -1096,7 +1164,7 @@
             offer.querySelectorAll("img").forEach(img => img.removeAttribute("src")); // логотип есть и в браузере
             return offer.outerHTML;
         });
-        const job = SYNC.pack(JSON.stringify({ v: 1, state, rb: rbOverrides, offer: offers[0] || "", offers }));
+        const job = SYNC.pack(JSON.stringify({ v: 1, state, rb: rbOverrides, fx: fxBnm, offer: offers[0] || "", offers }));
         prepareHandoff.job = job;
         job.then(p => { if (prepareHandoff.job === job) handoffPacked = p; })
             .catch(err => { $("previewStatus").textContent = "Не получилось подготовить ссылку: " + err.message; });
@@ -1146,6 +1214,8 @@
             state = { ...defaults, ...data.state };
             // ставки из Telegram — только на этот расчёт, базу ставок браузера не переписываем
             if (data.rb && typeof data.rb === "object" && !Array.isArray(data.rb)) { rbOverrides = data.rb; applyRatebook(); }
+            // курс — тот же, что был в Telegram при сборке оффера
+            if (data.fx && Number(data.fx.EUR) > 0 && /^\d{4}-\d{2}-\d{2}$/.test(data.fx.iso || "")) fxBnm = data.fx;
             fillForm();
             recalc();
             const list = (Array.isArray(data.offers) ? data.offers : [data.offer]).filter(Boolean).map(cleanOffer).filter(Boolean);
@@ -1630,6 +1700,11 @@
     // ---------- старт ----------
     fillForm();
     recalc();
+    // курс BNM на сегодня: сразу при открытии и при возврате в приложение, если он не сегодняшний
+    loadBnmFx().then(changed => { if (changed) recalc(); });
+    document.addEventListener("visibilitychange", () => {
+        if (document.visibilityState === "visible" && (!fxBnm || fxBnm.iso !== todayIso())) loadBnmFx().then(changed => { if (changed) recalc(); });
+    });
     syncTelegramControls();
     takeHandoff();
     takeProject();
