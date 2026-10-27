@@ -123,6 +123,8 @@ textarea { font-family: ui-monospace, Menlo, monospace; font-size: 13px; }
     background: var(--card); border: 1px solid var(--primary); border-radius: var(--radius) var(--radius) 0 0;
     box-shadow: 0 -6px 20px rgba(15, 23, 42, .12); padding: 8px 12px calc(8px + env(safe-area-inset-bottom));
 }
+/* Телефон: цена за единицу — только в «Подробнее», иначе плашка закрывает пол-экрана */
+@media (pointer: coarse) { #sumDetails[hidden] ~ #pvKwPrice { display: none; } }
 .sum-row { display: flex; align-items: center; gap: 8px 10px; flex-wrap: wrap; }
 .sum-total { display: flex; flex-direction: column; flex: 1; min-width: 150px; }
 .sum-total span { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; }
@@ -368,6 +370,7 @@ body.no-scroll { overflow: hidden; }
 @media print { .offer-references { break-inside: avoid; } }
 .refs-pick { display: flex; flex-wrap: wrap; gap: 6px 16px; margin: 4px 0 10px; }
 .refs-pick label { display: inline-flex; align-items: center; gap: 6px; font-size: 14px; }
+.refs-pick input { width: auto; flex: none; margin: 0; padding: 0; }
 
 /* Импорт расчёта (calc-input.json от Claude) во вкладке «Проекты» */
 .import-box textarea { width: 100%; min-height: 70px; font: 12px/1.35 ui-monospace, Menlo, monospace; }
