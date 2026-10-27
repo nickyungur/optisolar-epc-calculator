@@ -43,6 +43,8 @@
                 tg.MainButton.setText("Сохранить проект");
                 tg.MainButton.onClick(() => { hideKeyboard(); $("btnSave").click(); });
             }
+            // свайп вниз по странице не сворачивает окно — закрытие кнопкой ✕
+            if (tg.isVersionAtLeast && tg.isVersionAtLeast("7.7")) tg.disableVerticalSwipes();
         } catch (_) { /* вне Telegram */ }
     }
 
