@@ -41,10 +41,32 @@
             if (tg.setBackgroundColor) tg.setBackgroundColor("bg_color");
             if (tg.MainButton) {
                 tg.MainButton.setText("Сохранить проект");
-                tg.MainButton.onClick(() => $("btnSave").click());
+                tg.MainButton.onClick(() => { hideKeyboard(); $("btnSave").click(); });
             }
         } catch (_) { /* вне Telegram */ }
     }
+
+    // Телефон: тап мимо поля убирает клавиатуру (iOS сама её не прячет). Прокрутка — не тап.
+    const TYPING = "input:not([type=checkbox]):not([type=radio]):not([type=file]), textarea, select, [contenteditable]";
+    function hideKeyboard() {
+        const a = document.activeElement;
+        if (a && a.matches && a.matches(TYPING)) a.blur();
+    }
+    let tapFrom = null;
+    document.addEventListener("touchstart", e => {
+        const t = e.touches[0];
+        tapFrom = e.touches.length === 1 ? { x: t.clientX, y: t.clientY } : null;
+    }, { passive: true });
+    document.addEventListener("touchend", e => {
+        const t = e.changedTouches[0], from = tapFrom;
+        tapFrom = null;
+        if (!from || Math.abs(t.clientX - from.x) + Math.abs(t.clientY - from.y) > 10) return;
+        const el = e.target;
+        if (!el.closest || el.closest(TYPING)) return;
+        const lab = el.closest("label");
+        if (lab && lab.control && lab.control.matches(TYPING)) return;
+        hideKeyboard();
+    }, { passive: true });
 
     // ---------- хранилище ----------
     function load(key, fallback) {
