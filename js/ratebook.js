@@ -9,7 +9,7 @@
 // =========================================
 
 window.RATEBOOK = {
-    version: "2026-10-19",
+    version: "2026-10-29",
 
     fx: { EUR: 20.0228, USD: 17.8919, UAH: 0.3988, RON: 3.7407, MDL: 1, date: "08.10.2026", src: "BNM" },
     vatPct: 20,
@@ -51,7 +51,9 @@ window.RATEBOOK = {
         cabinetsPerTrip: 2,
         portKm: 220,
         transformerSizes: [100, 160, 250, 400, 630, 800, 1000, 1250, 1600, 2000, 2500, 3150, 4000, 5000, 6300],
-        trafoScaleExp: 0.8
+        trafoScaleExp: 0.8,
+        // ограждение и видеонаблюдение (2026-10-29)
+        fenceM2PerKwp: 15, fenceMarginM: 3, cabinetSiteM2: 10, cctvSpacingM: 100
     },
 
     rates: {
@@ -81,6 +83,10 @@ window.RATEBOOK = {
         ct_meter:         { ru: "Трансформатор тока для учёта", ro: "Transformator de curent pentru evidență", cat: "main-equipment", unit: "buc", price: 10690, cur: "MDL", vat: "incl", date: "06.2026", src: "Corden-ST: 20/5 0,5 2,5 ВА кабельного типа", status: "inv" },
         rza_terminal:     { ru: "Терминал РЗА ячейки СН", ro: "Terminal de protecție RPA (celulă MT)", cat: "main-equipment", unit: "buc", price: 86310, cur: "MDL", vat: "incl", date: "02.2026", src: "КП EnergoArhitect: e2TANGO-450", status: "inv" },
         shot:             { ru: "Шкаф оперативного тока 110 В DC", ro: "Dulap de curent operativ 110 V c.c.", cat: "main-equipment", unit: "buc", price: 793600, cur: "MDL", vat: "incl", date: "02.2026", src: "КП EnergoArhitect: APS Energia, АКБ 40 А·ч, Rittal", status: "inv" },
+        // ограждение и видеонаблюдение площадки (бизнес: наземная СЭС, BESS на площадке; 2026-10-29)
+        fence_m:          { ru: "Ограждение из 3D-панелей 2 м под ключ (панели, столбы, ворота, калитка, монтаж)", ro: "Împrejmuire din panouri bordurate 3D, h = 2 m, la cheie (panouri, stâlpi, poartă, portiță, montaj)", cat: "main-equipment", unit: "m", price: 450, cur: "MDL", vat: "excl", date: "10.2026", src: "Рынок MD 29.10.2026, подтверждено пользователем, с TVA ÷ 1,2: панель 3D 2,0–2,03×2,5 м 345–500 лей (garduri.md, supraten.md), столб 2,5 м 350 лей (supraten.md), крепёж и бетон ≈100 лей на столб, монтаж ≈120 лей/м, ворота 4 м + калитка ≈50 лей/м, доставка ≈20 лей/м", status: "mkt" },
+        cctv_point:       { ru: "Точка видеонаблюдения под ключ: столб 6 м, IP-камера 4 МП, LED-прожектор", ro: "Punct de supraveghere video la cheie: stâlp 6 m, cameră IP 4 MP, proiector LED", cat: "main-equipment", unit: "buc", price: 13000, cur: "MDL", vat: "excl", date: "10.2026", src: "Рынок MD 29.10.2026, подтверждено пользователем, с TVA ÷ 1,2: столб 6 м Elmos HD-106 4 495 лей (volta.md), IP-камера 4 МП 2 200–3 400 лей (maximum.md, smart.md), прожектор LED 100 Вт 415–552 лей (volta.md) + фотореле, фундамент ≈1 000, кабель 100 м ≈3 000, монтаж ≈3 000 лей", status: "mkt" },
+        cctv_nvr:         { ru: "Видеорегистратор с диском, роутер 4G, настройка удалённого доступа", ro: "Înregistrator video (NVR) cu HDD, router 4G, configurare acces la distanță", cat: "main-equipment", unit: "set", price: 11200, cur: "MDL", vat: "excl", date: "10.2026", src: "Рынок MD 29.10.2026, подтверждено пользователем, с TVA ÷ 1,2: NVR Hikvision 8 каналов PoE 6 972 лей (smart.md), диск 4 ТБ ≈2 000, роутер 4G ≈1 500, ИБП ≈1 500, настройка ≈1 500 лей", status: "mkt" },
 
         // ---------- Материалы ----------
         ac_dc_home_kwp:   { ru: "Материалы AC/DC для дома (за кВтп)", ro: "Componente AC, DC, cabluri și protecții", cat: "materials", unit: "kWp", price: 1273.15, cur: "MDL", vat: "excl", date: "05.2026", src: "Оффер OptiSolar 12 кВт: 22 000 с TVA ÷ 1,2 ÷ 1,2 ÷ 12 кВтп", status: "opt" },

@@ -118,9 +118,13 @@
         bessPrice: 0, bessPriceUnit: "kw", bessPriceCurrency: "MDL",   // цена BESS без TVA: подгоняет позиции накопителя
         manual: false,      // позиции импортированы из calc-input.json — генератор не добавляет свои
         fxManual: null,     // курс EUR вручную на дату оффера: { EUR, iso }; на другой день не действует
-        projectId: null     // открытый сохранённый проект (pid): «Сохранить проект» обновляет его; null — новый
+        projectId: null,    // открытый сохранённый проект (pid): «Сохранить проект» обновляет его; null — новый
+        fenceM: null        // ограждение, м: null — авто (бизнес: наземная СЭС, BESS на площадке), 0 — без забора и камер
     };
-    let state = { ...defaults, ...load(KEY_STATE, {}) };
+    // расчёты до 2026-10-29 открываются без забора и камер (fenceM: 0) — их итог не меняется
+    const OLD = { fenceM: 0 };
+    const stored = load(KEY_STATE, null);
+    let state = stored ? { ...defaults, ...OLD, ...stored } : { ...defaults };
     let last = null;
 
     const $ = id => document.getElementById(id);
@@ -235,6 +239,13 @@
     }));
     TEXT_FIELDS.forEach(id => $(id).addEventListener("input", () => { state[id] = $(id).value; persist(); renderOffer(); }));
     $("zeroExport").addEventListener("change", () => { state.zeroExport = $("zeroExport").checked; recalc(); });
+    // Ограждение: пусто — авто по площади парка или площадки, 0 — без забора и камер
+    $("fenceM").addEventListener("input", () => {
+        const s = $("fenceM").value.trim();
+        const v = num(s);
+        $("fenceM").classList.toggle("bad", s !== "" && Number.isNaN(v));
+        if (s === "" || !Number.isNaN(v)) { state.fenceM = s === "" ? null : v; recalc(); }
+    });
     // Оборудование: бренд сбрасывает выбор моделей; правки строк не сбрасываются
     $("eqBrand").addEventListener("change", () => { const st = eqStore(); st.eqBrand = $("eqBrand").value; st.eqInverter = ""; st.eqBattery = ""; recalc(); });
     $("eqInverter").addEventListener("change", () => { eqStore().eqInverter = $("eqInverter").value; recalc(); });
@@ -267,6 +278,7 @@
         $("bessPriceCurrency").value = state.bessPriceCurrency === "EUR" ? "EUR" : "MDL";
         TEXT_FIELDS.forEach(id => { $(id).value = state[id] ?? ""; });
         $("zeroExport").checked = !!state.zeroExport;
+        $("fenceM").value = state.fenceM ?? "";
         $("vatEnabled").checked = state.vatEnabled !== false;
         const fin = window.RATEBOOK_ACTIVE.financial;
         if (state.indirect == null) $("indirect").value = fin.indirect;
@@ -282,7 +294,7 @@
         const mv = biz && state.voltage !== "0.4";
         document.querySelectorAll("[data-show]").forEach(el => {
             const k = el.dataset.show;
-            const show = k === "equip" ? !state.manual : k === "home" ? home : k === "pv" ? hasPv : k === "inverter" ? (hasPv || (home && hasBess)) : k === "bess" ? hasBess : k === "bess-power" ? (hasBess && biz) : k === "biz" ? biz : k === "mv" ? mv : k === "zero" ? (hasPv && !(biz && hasBess)) : k === "home-roof" ? (home && hasPv) : true;
+            const show = k === "equip" ? !state.manual : k === "home" ? home : k === "pv" ? hasPv : k === "inverter" ? (hasPv || (home && hasBess)) : k === "bess" ? hasBess : k === "bess-power" ? (hasBess && biz) : k === "biz" ? biz : k === "mv" ? mv : k === "zero" ? (hasPv && !(biz && hasBess)) : k === "home-roof" ? (home && hasPv) : k === "fence" ? (biz && ((hasPv && state.mount === "ground") || hasBess)) : true;
             el.hidden = !show;
         });
     }
@@ -371,7 +383,9 @@
         if (sheet === "pv") return { ...state, product: "pv" };
         if (!isBessSheet(sheet)) return state;
         const v = store(sheet);
-        return { ...state, product: "bess", inverterKw: 0, zeroExport: false, bessKw: v.bessKw, bessKwh: v.bessKwh, eqBrand: v.eqBrand || "auto", eqInverter: v.eqInverter || "", eqBattery: v.eqBattery || "" };
+        // накопитель внутри наземного парка — забор и камеры уже на листе СЭС
+        const noFence = state.product === "pv_bess" && state.mount === "ground";
+        return { ...state, product: "bess", inverterKw: 0, zeroExport: false, noFence, bessKw: v.bessKw, bessKwh: v.bessKwh, eqBrand: v.eqBrand || "auto", eqInverter: v.eqInverter || "", eqBattery: v.eqBattery || "" };
     }
     // Переключение листа: поля «BESS, кВт / кВт·ч» показывают вариант этого листа
     function selectSheet(id) {
@@ -454,6 +468,8 @@
         last = sheets.find(x => x.sheet === active) || sheets[0];
         last.sheets = sheets;
         renderSheets();
+        const fenceAuto = [last, ...sheets].map(x => x.info.fenceAutoM).find(v => v > 0);
+        $("fenceM").placeholder = fenceAuto ? `Авто: ${fmt0(fenceAuto)}` : "Авто";
         renderTotals();
         renderEquip();
         renderItems();
@@ -1240,7 +1256,7 @@
         try {
             const data = JSON.parse(await SYNC.unpack(m[2]));
             if (!data || data.v !== 1 || !data.state || typeof data.state !== "object") throw new Error("ссылка повреждена");
-            state = { ...defaults, ...data.state };
+            state = { ...defaults, ...OLD, ...data.state };
             // ставки из Telegram — только на этот расчёт, базу ставок браузера не переписываем
             if (data.rb && typeof data.rb === "object" && !Array.isArray(data.rb)) { rbOverrides = data.rb; applyRatebook(); }
             // курс — тот же, что был в Telegram при сборке оффера
@@ -1409,7 +1425,7 @@
     function markClean(rev) { save(KEY_CLEAN, { rev: rev || null, json: JSON.stringify(state) }); renderProjState(); }
 
     function loadProject(p) {
-        state = { ...defaults, ...p.state, projectId: projectKey(p) };
+        state = { ...defaults, ...OLD, ...p.state, projectId: projectKey(p) };
         fillForm();
         recalc();
         markClean(p.id);

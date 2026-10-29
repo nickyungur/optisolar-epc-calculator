@@ -541,6 +541,30 @@
             if (Math.max(bessKw, pvKwp) >= 1000) add("scada_iec104", 1);
         }
 
+        // ---------- Ограждение и видеонаблюдение (2026-10-29) ----------
+        // Бизнес: наземная СЭС — забор по периметру парка (≈1,5 га на МВтп, участок 2:1),
+        // BESS на площадке (шкафы, контейнеры) — по площадке с отступом. Крыша и дом — без забора.
+        // Длина — из поля «Ограждение, м», пусто — авто. На каждые 100 м — точка видеонаблюдения
+        // (столб, камера, прожектор), на объект — регистратор. noFence: BESS внутри наземного парка.
+        const fenceSite = seg === "biz" && !input.noFence && ((hasPv && mount === "ground") || topology === "cabinet" || topology === "container");
+        if (fenceSite) {
+            let perimeter;
+            if (hasPv && mount === "ground") {
+                perimeter = 6 * Math.sqrt(pvKwp * (N.fenceM2PerKwp ?? 15) / 2);
+            } else {
+                const area = topology === "container" ? bessKwh / 1000 * N.siteM2PerMwh : units * (N.cabinetSiteM2 ?? 10);
+                perimeter = 4 * (Math.sqrt(area) + 2 * (N.fenceMarginM ?? 3));
+            }
+            info.fenceAutoM = Math.ceil(perimeter / 10 - 1e-9) * 10;
+            const own = input.fenceM;
+            info.fenceM = own === null || own === undefined || own === "" ? info.fenceAutoM : Math.max(0, Number(own) || 0);
+            if (info.fenceM > 0) {
+                add("fence_m", info.fenceM);
+                add("cctv_point", Math.max(1, Math.ceil(info.fenceM / (N.cctvSpacingM ?? 100) - 1e-9)));
+                add("cctv_nvr", 1);
+            }
+        }
+
         // ---------- Материалы ----------
         if (seg === "home") {
             if (hasPv) add("ac_dc_home_kwp", pvKwp);
