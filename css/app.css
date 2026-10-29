@@ -222,6 +222,12 @@ table.coef td, table.coef th { padding: 4px; text-align: left; }
 table.coef input { padding: 6px; }
 
 .proj { display: flex; justify-content: space-between; gap: 8px; align-items: center; padding: 10px 0; border-top: 1px solid var(--border); flex-wrap: wrap; }
+.proj.open b::after { content: " · открыт"; font-weight: 400; color: var(--muted); }
+/* какой проект открыт во вкладке «Расчёт» */
+.proj-bar { display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap; margin: 0 0 12px; }
+.proj-bar .hint { margin: 0; flex: 1; min-width: 160px; }
+.proj-bar .hint b { color: var(--text); }
+.proj-bar .btn { padding: 6px 10px; font-size: 13px; }
 
 .modal { position: fixed; inset: 0; background: rgba(0, 0, 0, .45); z-index: 20; display: flex; align-items: stretch; justify-content: center; padding: 10px; }
 .modal[hidden] { display: none; }
