@@ -107,9 +107,10 @@
         <div class="field"><label for="distanceKm">От Кишинёва, км</label><input id="distanceKm" inputmode="decimal" value="50"></div>
         <div class="field" data-show="biz"><label for="cableLvM">Кабель НН, м</label><input id="cableLvM" inputmode="decimal" value="50"></div>
         <div class="field" data-show="mv"><label for="cableMvM">Линия СН, м</label><input id="cableMvM" inputmode="decimal" value="300"></div>
+        <div class="field" data-show="fence"><label for="fenceM">Ограждение, м</label><input id="fenceM" inputmode="decimal" placeholder="Авто"></div>
       </div>
       <label class="check" data-show="zero"><input type="checkbox" id="zeroExport"> Zero Export (без выдачи в сеть)</label>
-      <p class="note">Мощность инвертора задаётся отдельно; 0 — автоматический подбор. Для домашней системы с аккумулятором отдельного поля мощности BESS нет: она берётся от гибридного инвертора, подобранного по ёмкости батареи и доступным типоразмерам. Цена за кВтп без TVA задаёт бюджет СЭС; строки сметы распределяются пропорционально текущим долям. Если цена 0, остаётся расчёт по ставкам. Цена BESS без TVA (за кВт или за кВт·ч) так же подгоняет позиции накопителя; у каждого варианта BESS она своя. Смена мощности, клиента, системы или напряжения пересобирает позиции и сбрасывает правки строк. Добавленные вручную позиции остаются.</p>
+      <p class="note">Мощность инвертора задаётся отдельно; 0 — автоматический подбор. Для домашней системы с аккумулятором отдельного поля мощности BESS нет: она берётся от гибридного инвертора, подобранного по ёмкости батареи и доступным типоразмерам. Цена за кВтп без TVA задаёт бюджет СЭС; строки сметы распределяются пропорционально текущим долям. Если цена 0, остаётся расчёт по ставкам. Цена BESS без TVA (за кВт или за кВт·ч) так же подгоняет позиции накопителя; у каждого варианта BESS она своя. Смена мощности, клиента, системы или напряжения пересобирает позиции и сбрасывает правки строк. Добавленные вручную позиции остаются. Ограждение (бизнес: наземная СЭС, BESS на площадке): пусто — длина по площади парка или площадки, своё число — свои метры, 0 — без забора и камер; на каждые 100 м — точка видеонаблюдения со столбом и прожектором.</p>
     </div>
 
     <!-- ② КЛИЕНТ -->
@@ -330,11 +331,11 @@
 <script src="js/data.js"></script>
 <script src="js/calculator.js"></script>
 <script src="js/logo.js"></script>
-<script src="js/ratebook.js?v=20261019-3"></script>
-<script src="js/generator.js?v=20261019-7"></script>
+<script src="js/ratebook.js?v=20261029-1"></script>
+<script src="js/generator.js?v=20261029-1"></script>
 <script src="js/references.js?v=20261014-18"></script>
 <script src="js/offer.js?v=20261026-1"></script>
 <script src="js/sync.js?v=20261014-18"></script>
-<script src="js/main.js?v=20261029-1"></script>
+<script src="js/main.js?v=20261029-2"></script>
 </body>
 </html>
