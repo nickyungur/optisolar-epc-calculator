@@ -16,6 +16,7 @@
     const KEY_PROJECTS = "epc2_projects";
     const KEY_FX = "epc2_fx_bnm";                    // последний курс BNM из fx.json
     const KEY_PROJECTS_DEL = "epc2_projects_deleted"; // удалены без связи — убрать из облака
+    const KEY_CLEAN = "epc2_state_saved";            // расчёт на момент сохранения или открытия — есть ли несохранённые правки
     const LOGO = window.OPTISOLAR_LOGO || "img/optisolar-logo.png";
     const headerLogo = document.querySelector(".bar-logo");
     if (headerLogo) headerLogo.src = LOGO;
@@ -116,7 +117,8 @@
         bessVariants: null, bessCur: "", sheet: "pv", pvInOffer: true,
         bessPrice: 0, bessPriceUnit: "kw", bessPriceCurrency: "MDL",   // цена BESS без TVA: подгоняет позиции накопителя
         manual: false,      // позиции импортированы из calc-input.json — генератор не добавляет свои
-        fxManual: null      // курс EUR вручную на дату оффера: { EUR, iso }; на другой день не действует
+        fxManual: null,     // курс EUR вручную на дату оффера: { EUR, iso }; на другой день не действует
+        projectId: null     // открытый сохранённый проект (pid): «Сохранить проект» обновляет его; null — новый
     };
     let state = { ...defaults, ...load(KEY_STATE, {}) };
     let last = null;
@@ -287,6 +289,7 @@
 
     function persist() {
         save(KEY_STATE, state);
+        renderProjState();
     }
 
     // ---------- расчёт ----------
@@ -385,8 +388,10 @@
         const gen = GEN.generate(genInput(sheet));
         const st = store(sheet);
         const edits = st.edits || {};
+        // мощности не заданы (новый проект) — позиций нет: проект и сдача появятся вместе с кВтп или кВт·ч
+        const noPower = !(gen.info.pvKwp > 0) && !(gen.info.bessKw > 0) && !(gen.info.bessKwh > 0);
         // _key — ключ правки по исходному названию генератора: после переименования правки не теряются
-        const items = (state.manual ? [] : gen.items).map(it => {
+        const items = (state.manual || noPower ? [] : gen.items).map(it => {
             const key = itemKey(it);
             const e = edits[key];
             return e ? { ...it, ...e, edited: true, _key: key } : { ...it, _key: key };
@@ -1343,7 +1348,18 @@
                 // пока шла синхронизация, могли сохранить или удалить проект — не теряем это
                 const delNow = new Set(load(KEY_PROJECTS_DEL, []).filter(id => !deleted.includes(id)));
                 const fresh = load(KEY_PROJECTS, []).filter(p => !p.synced && !r.list.some(x => x.id === p.id));
-                save(KEY_PROJECTS, [...fresh, ...r.list].filter(p => !delNow.has(p.id)));
+                // один проект — одна запись: если его сохранили на двух устройствах, остаётся последняя,
+                // остальные уходят из облака следующим проходом
+                const pids = new Set();
+                const merged = [...fresh, ...r.list].filter(p => !delNow.has(p.id))
+                    .sort((a, b) => String(b.savedAt).localeCompare(String(a.savedAt)))
+                    .filter(p => {
+                        if (!pids.has(projectKey(p))) { pids.add(projectKey(p)); return true; }
+                        delNow.add(p.id);
+                        cloud.again = true;
+                        return false;
+                    });
+                save(KEY_PROJECTS, merged);
                 save(KEY_PROJECTS_DEL, [...delNow]);
                 const rr = await SYNC.syncRates(rbOverrides, rbAt);
                 if (rr.action === "upload") save(KEY_RB_AT, rr.at);
@@ -1366,6 +1382,7 @@
             } finally {
                 cloud.busy = null;
             }
+            takeRemoteUpdate();
             renderProjects();
             if (cloud.again) { cloud.again = false; return syncNow(); }
         })();
@@ -1381,34 +1398,103 @@
         $("syncInfo").classList.toggle("bad-text", !!cloud.error && !text);
     }
 
-    function saveProject() {
+    // У проекта два номера: id — запись (в облаке ключ p<id>_…), pid — сам проект, не меняется.
+    // Сохранение открытого проекта заменяет его запись новой с тем же pid, а старая удаляется
+    // из облака тем же путём, что и «Удалить», — на других устройствах проект тоже обновится.
+    const projectKey = p => p.pid || p.id;   // у проектов до 2026-10-29 pid нет
+    const openProject = list => state.projectId ? list.find(p => projectKey(p) === state.projectId) : null;
+    // KEY_CLEAN: { rev — запись, которая открыта в форме; json — расчёт на момент открытия или сохранения }
+    const clean = () => load(KEY_CLEAN, {});
+    const unsaved = () => JSON.stringify(state) !== clean().json;
+    function markClean(rev) { save(KEY_CLEAN, { rev: rev || null, json: JSON.stringify(state) }); renderProjState(); }
+
+    function loadProject(p) {
+        state = { ...defaults, ...p.state, projectId: projectKey(p) };
+        fillForm();
+        recalc();
+        markClean(p.id);
+    }
+    // Открытый проект пересохранили на другом устройстве: своих правок нет — открыть новую версию,
+    // есть — оставить их и предупредить в строке проекта
+    function takeRemoteUpdate() {
+        const p = openProject(load(KEY_PROJECTS, []));
+        const c = clean();
+        if (!p || !c.rev || p.id === c.rev || unsaved()) return;
+        loadProject(p);
+        $("exportStatus").textContent = "Проект обновлён с другого устройства: " + p.name;
+    }
+
+    function saveProject(asCopy) {
+        if (!last) return;
         const list = load(KEY_PROJECTS, []);
+        const old = asCopy ? null : openProject(list);
         const name = `${state.leadId || ""} ${state.client || "Без имени"} — ${last.info.title}`.trim();
-        list.unshift({ id: Date.now(), savedAt: new Date().toISOString(), name, price: Math.round(last.result.priceWithVat), state: JSON.parse(JSON.stringify(state)) });
-        if (save(KEY_PROJECTS, CLOUD ? list : list.slice(0, 100))) {
-            $("exportStatus").textContent = CLOUD ? "Проект сохранён, отправляю в облако Telegram: " + name : "Проект сохранён в этом браузере: " + name;
+        const id = Math.max(Date.now(), ...list.map(p => p.id + 1));
+        state.projectId = old ? projectKey(old) : id;
+        const entry = { id, pid: state.projectId, savedAt: new Date().toISOString(), name, price: Math.round(last.result.priceWithVat), state: JSON.parse(JSON.stringify(state)) };
+        const next = [entry, ...list.filter(p => p !== old)];
+        if (save(KEY_PROJECTS, CLOUD ? next : next.slice(0, 100))) {
+            // старая запись — на удаление из облака, даже если ещё не ушла туда: синхронизация могла её как раз отправлять
+            if (CLOUD && old) save(KEY_PROJECTS_DEL, [...load(KEY_PROJECTS_DEL, []), old.id]);
+            persist();
+            markClean(id);
+            const done = old ? "Проект обновлён" : "Проект сохранён";
+            $("exportStatus").textContent = CLOUD ? `${done}, отправляю в облако Telegram: ${name}` : `${done} в этом браузере: ${name}`;
             renderProjects();
             syncNow().then(() => {
                 if (!CLOUD) return;
                 $("exportStatus").textContent = cloud.error
-                    ? `Проект сохранён на этом устройстве, в облако пока не ушёл (${cloud.error}). Уйдёт при следующей синхронизации.`
-                    : "Проект сохранён и виден на всех ваших устройствах в Telegram: " + name;
+                    ? `${done} на этом устройстве, в облако пока не ушёл (${cloud.error}). Уйдёт при следующей синхронизации.`
+                    : `${done} и виден на всех ваших устройствах в Telegram: ${name}`;
             });
         } else {
+            state.projectId = old ? projectKey(old) : null;
             $("exportStatus").textContent = "Не удалось сохранить проект в этом браузере. Откройте приложение по опубликованной HTTPS-ссылке и проверьте, что хранилище браузера доступно.";
         }
         if (tg?.HapticFeedback) { try { tg.HapticFeedback.notificationOccurred("success"); } catch (_) {} }
     }
-    $("btnSave").addEventListener("click", saveProject);
+    $("btnSave").addEventListener("click", () => saveProject(false));
+    $("btnSaveCopy").addEventListener("click", () => saveProject(true));
+
+    // Новый проект — с нуля: мощности и цены 0, клиента нет, правок и листов нет.
+    // Остаются только выбор системы и личные настройки (язык, телефон, валюты).
+    function newProject() {
+        if (unsaved() && !confirm("Начать новый проект с нуля? Несохранённые изменения текущего расчёта пропадут.")) return;
+        const prev = state;
+        const keep = ["segment", "product", "voltage", "mount", "phases", "lang", "managerPhone", "currency", "pricePerKwpCurrency", "bessPriceUnit", "bessPriceCurrency"];
+        state = { ...defaults, bessKw: 0, bessKwh: 0 };
+        keep.forEach(k => { state[k] = prev[k] ?? defaults[k]; });
+        fillForm();
+        recalc();
+        markClean(null);
+        $("exportStatus").textContent = "";
+        document.querySelector('.tab[data-tab="calc"]').click();
+        window.scrollTo(0, 0);
+    }
+    document.querySelectorAll("[data-new-project]").forEach(b => b.addEventListener("click", newProject));
+
+    // Строка над шагом ①: какой проект открыт и сохранены ли правки
+    function renderProjState() {
+        const p = openProject(load(KEY_PROJECTS, []));
+        const c = clean();
+        const note = !unsaved() ? "сохранён"
+            : c.rev && p && p.id !== c.rev ? "изменён на другом устройстве; «Сохранить проект» заменит ту версию этой"
+            : "есть несохранённые изменения";
+        $("projState").innerHTML = p
+            ? `Проект: <b>${escapeHtml(p.name)}</b> · ${note}`
+            : "Новый проект — «Сохранить проект» добавит его в список";
+        $("btnSaveCopy").hidden = !p;
+    }
 
     function renderProjects() {
         const list = load(KEY_PROJECTS, []);
         $("projectsList").innerHTML = list.length ? list.map(p => `
-          <div class="proj" data-id="${p.id}">
+          <div class="proj${projectKey(p) === state.projectId ? " open" : ""}" data-id="${p.id}">
             <div><b>${escapeHtml(p.name)}</b><br><span class="hint">${new Date(p.savedAt).toLocaleString("ru-RU")} · ${fmt0(p.price)} MDL с TVA${CLOUD && !p.synced ? " · пока только на этом устройстве" : ""}</span></div>
             <div class="buttons small"><button type="button" class="btn" data-act="open">Открыть</button><button type="button" class="btn" data-act="del">Удалить</button></div>
           </div>`).join("") : '<p class="hint">Пока пусто.</p>';
         renderSyncInfo();
+        renderProjState();
     }
     $("projectsList").addEventListener("click", e => {
         const btn = e.target.closest("button[data-act]");
@@ -1418,9 +1504,7 @@
         if (btn.dataset.act === "open") {
             const p = list.find(x => x.id === id);
             if (!p) return;
-            state = { ...defaults, ...p.state };
-            fillForm();
-            recalc();
+            loadProject(p);
             document.querySelector('.tab[data-tab="calc"]').click();
         } else if (confirm(CLOUD ? "Удалить проект? Он пропадёт на всех ваших устройствах." : "Удалить проект из списка?")) {
             const p = list.find(x => x.id === id);
