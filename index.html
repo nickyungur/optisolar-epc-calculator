@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <title>OptiSolar · Калькулятор КП</title>
-<link rel="stylesheet" href="css/app.css?v=20261028-1">
+<link rel="stylesheet" href="css/app.css?v=20261029-1">
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 </head>
 <body>
@@ -21,6 +21,12 @@
 <main>
   <!-- ================= РАСЧЁТ ================= -->
   <section id="tab-calc" class="tabpane active">
+
+    <!-- ПРОЕКТ: какой открыт. «Сохранить проект» обновляет его, «+ Новый проект» — расчёт с нуля -->
+    <div class="proj-bar">
+      <span class="hint" id="projState"></span>
+      <button type="button" class="btn" data-new-project>+ Новый проект</button>
+    </div>
 
     <!-- ① ЧТО СЧИТАЕМ -->
     <div class="card step">
@@ -195,6 +201,7 @@
         <span class="sep"></span>
         <button type="button" class="btn" id="btnNote">Записка для КД</button>
         <button type="button" class="btn" id="btnSave">Сохранить проект</button>
+        <button type="button" class="btn" id="btnSaveCopy" hidden>Сохранить копией</button>
       </div>
       <p class="hint" id="exportStatus"></p>
       <p class="note">Текст в оффере можно поправить прямо на листе. При пересчёте он собирается заново.</p>
@@ -265,7 +272,7 @@
     <div class="card">
       <div class="card-head">
         <h2>Сохранённые проекты</h2>
-        <div class="buttons small"><button type="button" class="btn" id="btnSync" hidden>Обновить</button><button type="button" class="btn" id="btnExportInput">calc-input.json</button></div>
+        <div class="buttons small"><button type="button" class="btn primary" data-new-project>+ Новый проект</button><button type="button" class="btn" id="btnSync" hidden>Обновить</button><button type="button" class="btn" id="btnExportInput">calc-input.json</button></div>
       </div>
       <p class="hint" id="projectsHint">Проекты хранятся только в этом браузере. Чтобы они были на всех устройствах, откройте калькулятор из Telegram. Для среды — кнопка calc-input.json.</p>
       <p class="hint" id="syncInfo"></p>
@@ -328,6 +335,6 @@
 <script src="js/references.js?v=20261014-18"></script>
 <script src="js/offer.js?v=20261026-1"></script>
 <script src="js/sync.js?v=20261014-18"></script>
-<script src="js/main.js?v=20261028-1"></script>
+<script src="js/main.js?v=20261029-1"></script>
 </body>
 </html>
