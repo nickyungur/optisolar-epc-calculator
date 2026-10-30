@@ -3,8 +3,9 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow, noarchive">
 <title>OptiSolar · Калькулятор КП</title>
-<link rel="stylesheet" href="css/app.css?v=20261029-1">
+<link rel="stylesheet" href="css/app.css?v=20261030-w2">
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 </head>
 <body>
@@ -21,6 +22,18 @@
 <main>
   <!-- ================= РАСЧЁТ ================= -->
   <section id="tab-calc" class="tabpane active">
+
+    <!-- БАЗА СТАВОК: без неё калькулятор не считает (цен в коде нет) -->
+    <div class="card base-gate import-box" id="baseGate" hidden>
+      <h2>Загрузите базу ставок</h2>
+      <p class="hint">Цен в калькуляторе нет — они в файле базы ставок. Вставьте код базы или выберите файл. Это нужно один раз: в Telegram база хранится в облаке и появляется на всех устройствах. Если вы уже загружали её на другом устройстве, она подтянется через несколько секунд.</p>
+      <textarea id="baseText" placeholder="Вставьте код базы ставок"></textarea>
+      <div class="buttons small">
+        <button type="button" class="btn primary" id="btnBaseText">Загрузить</button>
+        <label class="btn">Файл JSON<input type="file" id="baseFile" accept=".json,application/json" hidden></label>
+      </div>
+      <p class="hint" id="baseStatus"></p>
+    </div>
 
     <!-- ПРОЕКТ: какой открыт. «Сохранить проект» обновляет его, «+ Новый проект» — расчёт с нуля -->
     <div class="proj-bar">
@@ -52,11 +65,12 @@
       <div class="grid3">
         <div class="field" data-show="pv"><label for="pvKwp">Мощность панелей, кВтп</label><input id="pvKwp" inputmode="decimal" value="0"></div>
         <div class="field" data-show="inverter"><label for="inverterKw">Мощность инвертора, кВт</label><input id="inverterKw" inputmode="decimal" value="0" placeholder="Авто"></div>
-        <div class="field" data-show="pv"><label for="pricePerKwp">Цена за кВтп без TVA</label><div class="money-input"><input id="pricePerKwp" inputmode="decimal" value="0" placeholder="По смете"><select id="pricePerKwpCurrency" aria-label="Валюта цены за кВтп"><option value="MDL">MDL</option><option value="EUR">EUR</option></select></div></div>
+        <div class="field field-wide" data-show="pv"><label for="pricePerKwp">Цена за кВтп</label><div class="money-input"><input id="pricePerKwp" inputmode="decimal" value="0" placeholder="По смете"><select id="pricePerKwpCurrency" aria-label="Валюта цены за кВтп, с TVA или без"><option value="MDL:gross">MDL с TVA</option><option value="MDL:net">MDL без TVA</option><option value="EUR:gross">EUR с TVA</option><option value="EUR:net">EUR без TVA</option></select></div><p class="hint price-hint" id="pricePerKwpHint"></p></div>
         <div class="field" data-show="pv"><label for="powerIncreasePrice">Опционально: увеличение мощности, MDL</label><input id="powerIncreasePrice" inputmode="decimal" value="0" placeholder="0"></div>
         <div class="field" data-show="bess-power"><label for="bessKw">BESS, кВт</label><input id="bessKw" inputmode="decimal" value="500"></div>
         <div class="field" data-show="bess"><label for="bessKwh">BESS, кВт·ч</label><input id="bessKwh" inputmode="decimal" value="1000"></div>
-        <div class="field field-wide" data-show="bess"><label for="bessPrice">Цена BESS без TVA</label><div class="money-input money-input-3"><input id="bessPrice" inputmode="decimal" value="0" placeholder="По смете"><select id="bessPriceUnit" aria-label="За что цена BESS"><option value="kw">за кВт</option><option value="kwh">за кВт·ч</option></select><select id="bessPriceCurrency" aria-label="Валюта цены BESS"><option value="MDL">MDL</option><option value="EUR">EUR</option></select></div></div>
+        <div class="field field-wide" data-show="bess"><label for="bessPrice">Цена BESS</label><div class="money-input money-input-3"><input id="bessPrice" inputmode="decimal" value="0" placeholder="По смете"><select id="bessPriceUnit" aria-label="За что цена BESS"><option value="kw">за кВт</option><option value="kwh">за кВт·ч</option></select><select id="bessPriceCurrency" aria-label="Валюта цены BESS, с TVA или без"><option value="MDL:gross">MDL с TVA</option><option value="MDL:net">MDL без TVA</option><option value="EUR:gross">EUR с TVA</option><option value="EUR:net">EUR без TVA</option></select></div><p class="hint price-hint" id="bessPriceHint"></p></div>
+        <div class="field" data-show="bess-power"><label for="exportLimitKw">Лимит выдачи по авизу, кВт</label><input id="exportLimitKw" inputmode="decimal" placeholder="Нет / не знаю"></div>
       </div>
       <div class="sub" data-show="equip" id="eqTitle">Оборудование</div>
       <div class="grid2 eq-grid" data-show="equip">
@@ -110,17 +124,17 @@
         <div class="field" data-show="fence"><label for="fenceM">Ограждение, м</label><input id="fenceM" inputmode="decimal" placeholder="Авто"></div>
       </div>
       <label class="check" data-show="zero"><input type="checkbox" id="zeroExport"> Zero Export (без выдачи в сеть)</label>
-      <p class="note">Мощность инвертора задаётся отдельно; 0 — автоматический подбор. Для домашней системы с аккумулятором отдельного поля мощности BESS нет: она берётся от гибридного инвертора, подобранного по ёмкости батареи и доступным типоразмерам. Цена за кВтп без TVA задаёт бюджет СЭС; строки сметы распределяются пропорционально текущим долям. Если цена 0, остаётся расчёт по ставкам. Цена BESS без TVA (за кВт или за кВт·ч) так же подгоняет позиции накопителя; у каждого варианта BESS она своя. Смена мощности, клиента, системы или напряжения пересобирает позиции и сбрасывает правки строк. Добавленные вручную позиции остаются. Ограждение (бизнес: наземная СЭС, BESS на площадке): пусто — длина по площади парка или площадки, своё число — свои метры, 0 — без забора и камер; на каждые 100 м — точка видеонаблюдения со столбом и прожектором.</p>
+      <p class="note">Мощность инвертора задаётся отдельно; 0 — автоматический подбор. Для домашней системы с аккумулятором отдельного поля мощности BESS нет: она берётся от гибридного инвертора, подобранного по ёмкости батареи и доступным типоразмерам. Цена за кВтп (с TVA или без — выбор рядом с валютой) задаёт бюджет СЭС: строки сметы меняются пропорционально, строки с ручным коэффициентом не трогаются. Под полем — цена по ставкам и безубыточная. Если цена 0, остаётся расчёт по ставкам. Цена BESS (за кВт или за кВт·ч) так же подгоняет позиции накопителя; у каждого варианта BESS она своя. Смена мощности, системы или напряжения пересобирает позиции, но ручные правки строк остаются; если количество задано вручную, а расчёт по новой мощности другой, — предупреждение в итоге. Лимит выдачи по авизу: мощность BESS (PCS) должна быть не меньше его. Ограждение (бизнес: наземная СЭС, BESS на площадке): пусто — длина по площади парка или площадки, своё число — свои метры, 0 — без забора и камер; на каждые 100 м — точка видеонаблюдения со столбом и прожектором.</p>
     </div>
 
     <!-- ② КЛИЕНТ -->
     <div class="card step">
       <h2><span class="step-no">2</span> Клиент</h2>
       <div class="grid2">
-        <div class="field"><label for="client">Название / имя</label><input id="client" placeholder="LAPMOL SRL"></div>
+        <div class="field"><label for="client">Название / имя</label><input id="client" placeholder="Exemplu SRL"></div>
         <div class="field"><label for="location">Населённый пункт</label><input id="location" placeholder="or. Călărași"></div>
         <div class="field"><label for="leadId">ID лида</label><input id="leadId" placeholder="L-0042"></div>
-        <div class="field"><label for="goal">Цель BESS</label>
+        <div class="field" id="goalBox"><label for="goal">Цель накопителя</label>
           <select id="goal">
             <option value="">—</option>
             <option value="backup">Резерв (backup)</option>
@@ -132,6 +146,14 @@
           </select>
         </div>
       </div>
+      <!-- выработка в оффере всегда; экономия и окупаемость — только с потреблением (решение 7, 2026-10-30) -->
+      <div class="sub" data-show="savings">Экономия и окупаемость в оффере</div>
+      <div class="grid3" data-show="savings">
+        <div class="field"><label for="consumptionKwh">Потребление, кВт·ч в месяц</label><input id="consumptionKwh" inputmode="decimal" placeholder="Из счёта; пусто — без окупаемости"></div>
+        <div class="field"><label for="tariff">Тариф, лей/кВт·ч</label><input id="tariff" inputmode="decimal" placeholder="3,56"></div>
+        <div class="field"><label for="selfShare">Прямое потребление, %</label><input id="selfShare" inputmode="decimal" placeholder="Авто"></div>
+      </div>
+      <p class="hint" data-show="savings">Тариф: Premier Energy 3,56, север (FEE Nord) 3,95; бизнесу — из его счёта, без TVA. Прямое — доля потребления, которую станция закрывает сразу: 35% без батареи, 70% с батареей. Без потребления в оффере только выработка.</p>
     </div>
 
     <!-- ③ ПОЗИЦИИ -->
@@ -141,6 +163,7 @@
         <div class="buttons small">
           <button type="button" class="btn primary" id="btnAddItem">+ Позиция</button>
           <button type="button" class="btn" id="btnResetItems">Сбросить правки</button>
+          <button type="button" class="btn" id="btnUndoReset" hidden>Вернуть правки</button>
         </div>
       </div>
       <div class="sheets" id="sheetsBar" hidden></div>
@@ -186,8 +209,26 @@
             <button type="button" data-value="ru">RU</button>
           </div>
         </div>
-        <div class="field"><label for="validDays">Действует, дней</label><input id="validDays" inputmode="numeric" value="7"></div>
-        <div class="field"><label for="managerPhone">Мой телефон</label><input id="managerPhone" inputmode="tel" placeholder="+373 …"></div>
+        <div class="field"><label>Вид оффера</label>
+          <div class="chips" data-name="offerKind">
+            <button type="button" data-value="prelim" class="on">Предварительный</button>
+            <button type="button" data-value="final">Финальный</button>
+          </div>
+        </div>
+        <div class="field"><label for="validDays">Действует, дней</label><input id="validDays" inputmode="numeric" placeholder="Авто"></div>
+        <div class="field"><label for="payment">Оплата по этапам, %</label><input id="payment" placeholder="50/50"></div>
+      </div>
+      <p class="hint">Финальный — после выезда: цена твёрдая, без пометок «марка — в финальном». Оплата: 50/50 — аванс и после допуска; 30/60/10 — аванс, поставка, после допуска.</p>
+      <div class="sub">Ответственный в оффере</div>
+      <div class="grid2">
+        <div class="field"><label for="managerName">Имя</label><input id="managerName" placeholder="Nikita Ungureanu"></div>
+        <div class="field"><label for="managerRole">Должность</label><input id="managerRole" placeholder="Project Manager"></div>
+        <div class="field"><label for="managerPhone">Телефон</label><input id="managerPhone" inputmode="tel" placeholder="+373 …"></div>
+        <div class="field"><label for="managerEmail">Email</label><input id="managerEmail" inputmode="email" placeholder="Optisolar.Moldova@gmail.com"></div>
+      </div>
+      <div class="offer-no-row">
+        <p class="hint" id="offerNoInfo"></p>
+        <button type="button" class="btn" id="btnNewVersion" hidden>Новая версия</button>
       </div>
       <div class="field fx-field">
         <label for="fxEur">Курс EUR на дату оффера, MDL</label>
@@ -223,6 +264,7 @@
         <ul id="warnings" class="warnings"></ul>
       </div>
       <div id="pvKwPrice" class="per-unit" hidden></div>
+      <ul id="alerts" class="alerts" hidden></ul>
       <div class="sum-row">
         <div class="sum-total"><span id="sumLabel">Итого с TVA</span><b id="sumGross">—</b></div>
         <span class="pill" id="marginPill">—</span>
@@ -256,6 +298,7 @@
       <div class="legend">
         <span class="badge inv">Счёт 2026</span><span class="badge mkt">Рынок</span><span class="badge opt">OptiSolar</span><span class="badge est">Оценка</span>
       </div>
+      <p class="hint" id="baseInfo"></p>
       <input id="rateFilter" class="filter" placeholder="Поиск ставки…">
       <div id="ratesList"></div>
       <input type="file" id="ratesFile" accept="application/json" hidden>
@@ -331,11 +374,11 @@
 <script src="js/data.js"></script>
 <script src="js/calculator.js"></script>
 <script src="js/logo.js"></script>
-<script src="js/ratebook.js?v=20261029-1"></script>
-<script src="js/generator.js?v=20261029-1"></script>
-<script src="js/references.js?v=20261014-18"></script>
-<script src="js/offer.js?v=20261026-1"></script>
-<script src="js/sync.js?v=20261014-18"></script>
-<script src="js/main.js?v=20261029-2"></script>
+<script src="js/ratebook.js?v=20261030-w4"></script>
+<script src="js/generator.js?v=20261030-w4"></script>
+<script src="js/references.js?v=20261030-w2"></script>
+<script src="js/offer.js?v=20261030-w4"></script>
+<script src="js/sync.js?v=20261026-1"></script>
+<script src="js/main.js?v=20261030-w4"></script>
 </body>
 </html>
