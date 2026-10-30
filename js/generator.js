@@ -66,7 +66,24 @@
     const BESS_RATES = new Set(["foundation_design", "foundation_design_small", "bat_lv_kwh", "ci_cabinet", "ems_ci", "container_kwh", "pcs_kw",
         "ac_dc_home_bess", "grounding_cab", "fire_post", "dc_cable_185", "lug_185", "small_mat_mwh", "lightning_set", "lv_cable_m", "corrugated_90",
         "foundation_m3", "geodesy", "site_m2", "gravel_t", "crane_h", "crane_km", "crane_cw", "lowboy_km",
-        "home_bess_install", "cabinet_install", "bess_install_mwh", "lv_cable_lay_m", "bess_comm_ci", "ecology"]);
+        "home_bess_install", "cabinet_install", "bess_install_mwh", "lv_cable_lay_m", "bess_comm_ci", "ecology",
+        "bess_freight_kwh", "bess_eco_kwh", "foundation_design_unit"]);
+
+    // TVA работ (ст. 103 ч. (1) п. 30 НК; проверено по legis.md 2026-10-30 — knowledge/norms/tva-scutire-montaj-sre.md):
+    // строительно-монтажные работы станции на ВИЭ — scutit (0%), в том числе дома и на собственное потребление;
+    // накопитель — не станция (Закон 164/2025, ст. 2 п. 64): его монтаж и стройка — 20%, как и услуги
+    // (проект, геодезия, испытания, сдача) и товар (щебень). Пусконаладка СН своей бригадой — часть монтажа станции.
+    const PV_EXEMPT_WORKS = {
+        civil: new Set(["foundation_m3", "site_m2", "trench_m", "site_prep_pv_kwp"]),
+        commissioning: new Set(["mv_connect", "rza_comm_cell", "shot_comm"])
+    };
+    // работы, которые бывают только у накопителя: 20% на любом листе (и в «+ Позиция» на листе СЭС)
+    const BESS_WORKS = new Set(["home_bess_install", "cabinet_install", "bess_install_mwh", "bess_comm_ci", "bess_supervision_2500", "gotion_fat_sat"]);
+    function workVat(cat, rateId, section, vatPct) {
+        if (section === "bess" || BESS_WORKS.has(rateId)) return vatPct;
+        if (cat === "electrical") return 0;
+        return PV_EXEMPT_WORKS[cat] && PV_EXEMPT_WORKS[cat].has(rateId) ? 0 : vatPct;
+    }
 
     // =========================================
     // ПОДБОР ОБОРУДОВАНИЯ ПО МОДЕЛЯМ (RATEBOOK.equipment; цены — из файла импорта)
@@ -275,6 +292,8 @@
     function generate(input) {
         const book = rb();
         const N = book.norms;
+        // новые ставки волны 3 (quote) есть только в новой базе; со старой — расчёт как раньше
+        const hasPrice = id => { const r = book.rates[id]; return !!(r && r.price != null && r.cur); };
         const seg = input.segment === "home" ? "home" : "biz";
         const product = input.product || "pv_bess";
         // значения, оставшиеся в полях от другого продукта, в расчёт не идут:
@@ -290,6 +309,8 @@
             : enteredBessKw;
         const hasPv = product !== "bess" && pvKwp > 0;
         const defSec = hasPv ? "pv" : "bess";
+        // лист BESS рядом со СЭС той же площадки (волна 3, сводка 2.3): линия СН, SCADA и сдача СН — на листе СЭС, здесь не повторяются
+        const shared = !!input.sharedWithPv && !hasPv;
         const hasBess = product !== "pv" && bessKwh > 0 && bessKw > 0;
         let voltage = String(input.voltage || "0.4");
         if (seg === "home") voltage = "0.4";
@@ -348,6 +369,7 @@
             if (!(qty > 0)) return null;
             const rate = book.rates[rateId];
             const unitCost = opts.unitCost != null ? opts.unitCost : netMdl(rateId, opts.kw);
+            const section = opts.section || (BESS_RATES.has(rateId) ? "bess" : defSec);
             const item = {
                 category: rate.cat,
                 name: opts.name || rate.ro,
@@ -356,14 +378,14 @@
                 quantity: round2(qty),
                 cost: round2(unitCost),
                 coefficient: book.coefficients[seg][rate.cat] ?? 1.2,
-                // электромонтаж — всегда без TVA (правило пользователя 2026-10-19)
-                vatPct: rate.cat === "electrical" ? 0 : book.vatPct,
+                // работы станции — scutit, работы накопителя — 20% (workVat, 2026-10-30)
+                vatPct: workVat(rate.cat, rateId, section, book.vatPct),
                 rateId,
                 status: rate.status,
                 src: rate.src,
                 date: rate.date,
                 auto: true,
-                section: opts.section || (BESS_RATES.has(rateId) ? "bess" : defSec)
+                section
             };
             items.push(item);
             return item;
@@ -383,16 +405,17 @@
             if (hours < 0.5 || hours > 6) {
                 warnings.push(`Ёмкость/мощность = ${round2(hours)} ч — обычно 1–4 ч. Проверь кВт и кВт·ч.`);
             }
+            // текст — по фактическому порогу из норм (раньше писал «2 МВт·ч» при пороге 4 МВт·ч)
             if (seg === "biz" && !mv && bessKwh >= N.containerFromKwh) {
-                warnings.push("Больше 2 МВт·ч на 0,4 кВ — посчитано шкафами. Для такой ёмкости обычно нужно подключение на 10 кВ.");
+                warnings.push(`${fmtKwh(N.containerFromKwh)} и больше на 0,4 кВ — посчитано шкафами. Для такой ёмкости обычно нужно подключение на 10 кВ.`);
             }
         }
         if (seg === "home") {
             if (pvKwp > 10) warnings.push("Дому разрешено до 10 кВт выдачи в сеть (playbook §6). Больше — только без выдачи или на бизнес.");
             if (bessKw > 30 || bessKwh > 60 || pvKwp > 30) warnings.push("Для дома система крупная — проверь сегмент «Бизнес».");
         }
-        if (seg === "biz" && !mv && Math.max(bessKw, pvKwp) > 1000) {
-            warnings.push("Больше 1 МВт на 0,4 кВ — обычно нужно подключение на 10 кВ.");
+        if (seg === "biz" && !mv && Math.max(bessKw, pvKwp) >= 1000) {
+            warnings.push("1 МВт и больше на 0,4 кВ — обычно нужно подключение на 10 кВ. Посчитай вариант на СН.");
         }
 
         // ---------- Проектирование ----------
@@ -403,7 +426,12 @@
 
         const cells = voltage === "35" ? 2 : 0;
         if (cells) add("design_rza_cell", cells);
-        if (topology === "container") add("foundation_design", 1);
+        if (topology === "container") {
+            // по числу оснований: контейнеры, трансформаторы, PCS (волна 3); без цены за основание — договор целиком, как раньше
+            const bases = Math.ceil(bessKwh / N.containerKwh - 1e-9) + (mv ? Math.max(1, Math.ceil(bessKw / 5000 - 1e-9)) : 0) + 1;
+            if (hasPrice("foundation_design_unit")) add("foundation_design_unit", bases);
+            else add("foundation_design", 1);
+        }
         if (topology === "cabinet") add("foundation_design_small", 1);
 
         // ---------- Оборудование СЭС ----------
@@ -502,6 +530,9 @@
             else if (invUnits === 1 && huaweiInv[0].e.fam === "grid" && dongle && eqNet(dongle) > 0) addEq(dongle, 1);
         }
 
+        // метеостанция наземного парка на СН (волна 3)
+        if (seg === "biz" && hasPv && mount === "ground" && mv && hasPrice("meteo_station")) add("meteo_station", 1);
+
         // ---------- Оборудование СН ----------
         let trafos = 0;
         let tsn = false;
@@ -523,7 +554,8 @@
             });
             info.kva = kva;
             info.trafos = trafos;
-            if (topology === "container") {
+            // КТП собственных нужд — от 10 МВт·ч; меньше — питание с НН основного трансформатора (волна 3, проверить у проектанта)
+            if (topology === "container" && bessKwh > (N.tsnFromKwh ?? 10000)) {
                 const tsnKva = pickStd(N.transformerSizes, bessKwh / 1000 * N.tsnKvaPerMwh);
                 add("ktp_800", 1, {
                     unitCost: (netMdl("ktp_800") + netMdl("trafo_800")) * Math.pow(tsnKva / 800, 0.6),
@@ -533,12 +565,15 @@
                 });
                 tsn = true;
             }
-            add("ct_meter", 3);
+            // учёт по точкам (волна 3): СЭС — граница, выработка, собственные нужды; BESS — накопитель и его нужды
+            // (+ граница, если лист BESS сам по себе); без цены в базе — ТТ учёта, как раньше
+            if (hasPrice("metering_point")) add("metering_point", (hasPv ? 3 : 0) + (hasBess ? 2 : 0) + (!hasPv && !shared ? 1 : 0));
+            else add("ct_meter", 3);
             if (cells) {
                 add("rza_terminal", cells);
                 add("shot", 1);
             }
-            if (Math.max(bessKw, pvKwp) >= 1000) add("scada_iec104", 1);
+            if (Math.max(bessKw, pvKwp) >= 1000 && !shared) add("scada_iec104", 1);
         }
 
         // ---------- Ограждение и видеонаблюдение (2026-10-29) ----------
@@ -598,7 +633,7 @@
             add("lightning_set", Math.max(1, Math.ceil(mwh / N.mwhPerLightningSet - 1e-9)));
         }
         let joints = 0;
-        if (mv && cableMvM > 0) {
+        if (mv && cableMvM > 0 && !shared) {
             add("mv_cable_m", cableMvM);
             add("mv_termination", 2);
             add("cable_slab", Math.ceil(cableMvM / 0.6));
@@ -621,12 +656,16 @@
             add("gravel_t", Math.ceil(area * N.gravelTPerM2));
             info.siteM2 = area;
         }
-        if (mv && cableMvM > 0) add("trench_m", cableMvM, { nameRu: "Траншея под кабель СН", section: defSec });
+        if (mv && cableMvM > 0 && !shared) add("trench_m", cableMvM, { nameRu: "Траншея под кабель СН", section: defSec });
+        // подготовка площадки наземной СЭС (волна 3)
+        if (seg === "biz" && hasPv && mount === "ground" && hasPrice("site_prep_pv_kwp")) add("site_prep_pv_kwp", pvKwp);
 
         // ---------- Логистика ----------
         // импорт и таможня — отдельно по блокам СЭС и BESS
         ["pv", "bess"].forEach(section => {
-            const importedCost = items.filter(i => IMPORTED.has(i.rateId) && i.section === section).reduce((s, i) => s + i.quantity * i.cost, 0);
+            // контейнеры с отдельной строкой доставки (КП) — без импорта 7% (волна 3)
+            const importedCost = items.filter(i => IMPORTED.has(i.rateId) && i.section === section && !(i.rateId === "container_kwh" && hasPrice("bess_freight_kwh")))
+                .reduce((s, i) => s + i.quantity * i.cost, 0);
             if (seg === "biz" && importedCost > 0) {
                 const pct = Number(book.rates.import_pct.price) || 0;
                 // у блока BESS своё название: ручная правка позиции привязана к названию
@@ -647,6 +686,12 @@
             add("manip_trip", Math.max(1, Math.ceil(pvKwp / 250 - 1e-9)));
         }
         if (topology === "container") {
+            // доставка контейнеров и сбор за загрязнение среды — по КП (волна 3), вместо импорта 7% на контейнеры
+            const kwhInst = info.bessKwhInstalled || bessKwh;
+            if (hasPrice("bess_freight_kwh")) {
+                add("bess_freight_kwh", kwhInst);
+                if (hasPrice("bess_eco_kwh")) add("bess_eco_kwh", kwhInst);
+            }
             const heavy = containers + trafos + (tsn ? 1 : 0);
             add("crane_h", Math.max(N.craneMinHours, Math.ceil(heavy * N.craneHoursPerUnit)));
             if (distanceKm > 0) add("crane_km", distanceKm * 2);
@@ -667,7 +712,7 @@
         }
         if (topology === "container") add("bess_install_mwh", bessKwh / 1000);
         if (mv) {
-            if (cableMvM > 0) add("mv_cable_lay_m", cableMvM);
+            if (cableMvM > 0 && !shared) add("mv_cable_lay_m", cableMvM);
             if (joints) add("mv_joint", joints);
             add("trafo_install", trafos + (tsn ? 1 : 0));
             if (cells) add("metering_scada_cell", cells);
@@ -688,7 +733,7 @@
 
         // ---------- Сдача ----------
         if (seg === "home") add("dare_home", 1);
-        else if (mv) add("dare_mv", 1);
+        else if (mv) { if (!shared) add("dare_mv", 1); }
         else add("dare_biz", 1);
         if (topology === "container") add("ecology", 1);
 
@@ -708,15 +753,19 @@
 
         // в заголовке и цене за кВт·ч — установленная ёмкость (модули, шкафы), а не запрошенная
         const kwhOffered = hasBess ? round2(info.bessKwhInstalled || bessKwh) : bessKwh;
-        info.title = systemTitle({ seg, product, hasPv, hasBess, pvKwp, bessKw, bessKwh: kwhOffered, voltage });
+        // и мощность — установленная (шкафы, гибрид HV), как ёмкость: 2 шкафа = 200 кВт, а не введённые 100 (ревизия 2026-10-29, E05)
+        const kwOffered = topology === "home" ? (info.inverterKw || bessKw) : hasBess ? round2(info.bessKwInstalled || bessKw) : bessKw;
+        info.title = systemTitle({ seg, product, hasPv, hasBess, pvKwp, bessKw: kwOffered, bessKwh: kwhOffered, voltage });
         info.voltage = voltage;
         info.segment = seg;
         info.product = product;
         info.pvKwp = pvKwp;
-        info.bessKw = topology === "home" ? (info.inverterKw || bessKw) : bessKw;
+        info.bessKw = kwOffered;
+        info.bessKwRequested = bessKw;
         info.bessKwh = kwhOffered;
         info.bessKwhRequested = bessKwh;
         info.estShare = Math.round(estShare);
+        info.sharedWithPv = shared;
         info.phases = phases;
         const opt = e => ({ id: e.id, label: `${eqLabel(e)} · ${e.kw} кВт · ${Math.round(eqNet(e)).toLocaleString("ru-RU")} MDL без TVA` });
         const usedInv = sel.hybInv || sel.pvInv;
@@ -740,10 +789,10 @@
 
     function systemTitle(p) {
         const parts = [];
-        if (p.hasPv) parts.push(`${fmtKw(p.pvKwp).replace("kW", "kWp")}`);
+        if (p.hasPv) parts.push(`${fmtKw(p.pvKwp)}p`); // 100 kWp, 1 MWp
         if (p.hasBess) parts.push(`BESS ${fmtKw(p.bessKw)} / ${fmtKwh(p.bessKwh)}`);
         return parts.join(" + ") || "—";
     }
 
-    window.EPC_GENERATOR = { generate, netMdl, fmtKw, fmtKwh, parseRateDate, eqNet, eqGet, eqAll };
+    window.EPC_GENERATOR = { generate, netMdl, fmtKw, fmtKwh, parseRateDate, eqNet, eqGet, eqAll, workVat };
 })();

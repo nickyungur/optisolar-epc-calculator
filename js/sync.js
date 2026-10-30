@@ -133,25 +133,28 @@
         return { list, uploaded, downloaded: added.length, removed: local.length - kept.length };
     }
 
-    // ---------- правки ставок ----------
-    // Побеждает более поздняя правка. Запись «r<время правки>_…»; старые версии удаляются.
+    // ---------- правки ставок и база ставок ----------
+    // Одна запись на вид: «r<время правки>_…» — правки ставок, «b<время загрузки>_…» — база ставок.
+    // Побеждает более поздняя; старые версии удаляются.
     // localAt = 1 — правки были до синхронизации, время неизвестно: уступают облаку.
-    async function syncRates(overrides, localAt) {
-        const cloud = (await listRecords("r")).sort((a, b) => b.id - a.id);
+    async function syncLatest(kind, value, localAt) {
+        const cloud = (await listRecords(kind)).sort((a, b) => b.id - a.id);
         const cloudAt = cloud.length ? cloud[0].id : 0;
         if (cloudAt > localAt) {
             const [got] = await readRecords([cloud[0]]);
             if (got && got.data && typeof got.data === "object" && !Array.isArray(got.data)) return { action: "download", overrides: got.data, at: cloudAt };
             return { action: "none" };
         }
-        if (localAt > cloudAt) {
+        if (localAt > cloudAt && value) {
             const at = localAt === 1 ? Date.now() : localAt;
-            await writeRecord("r", at, overrides);
+            await writeRecord(kind, at, value);
             await removeKeys(cloud.flatMap(r => r.keys));
             return { action: "upload", at };
         }
         return { action: "none" };
     }
+    const syncRates = (overrides, localAt) => syncLatest("r", overrides, localAt);
+    const syncBase = (base, localAt) => syncLatest("b", base, localAt);
 
-    window.EPC_SYNC = { available, pack, unpack, syncProjects, syncRates };
+    window.EPC_SYNC = { available, pack, unpack, syncProjects, syncRates, syncBase };
 })();
