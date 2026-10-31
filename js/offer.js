@@ -83,7 +83,6 @@
             bNote: "Eficiența ciclului, numărul de cicluri, garanția capacității, răcirea și certificatele — conform fișei tehnice a producătorului{fin}.",
             bNoteFin: ", anexată la oferta finală",
             terms: "CONDIȚII COMERCIALE", pay: "Plata",
-            payStages: ["avans în 3 zile bancare de la semnarea contractului", "la livrarea echipamentului", "după montaj și punerea în funcțiune", "în 3 zile bancare de la admiterea în exploatare"],
             term: "Termene", termVal: "livrarea echipamentului — până la 30 de zile calendaristice de la avans și avizul de racordare; montaj și punere în funcțiune — până la 30 de zile de la livrare; admiterea în exploatare — până la 30 de zile lucrătoare",
             warr: "Garanții", wPv: "module fotovoltaice 10–15 ani", wInv: "invertoare 5–10 ani", wMount: "structura de montaj 10 ani", wBat: "acumulatoare — conform producătorului", wWorks: "lucrări de montaj 5 ani",
             wNote: " (echipamentul — conform fișei producătorului)",
@@ -94,10 +93,34 @@
             rClient: "Beneficiarul", rClientVal: "actele și împuternicirile pentru dosar; accesul la obiect; pregătirea locului de instalare; paza echipamentelor pe șantier până la recepția finală",
             rNot: "Nu este inclus", rNotRoof: "consolidarea acoperișului; ",
             rNotVal: "instalația de împământare a clădirii, lucrările în rețeaua interioară, taxele operatorului de rețea și ale autorităților — dacă nu sunt în tabel; alte lucrări — doar prin anexă la contract",
-            totalKicker: "TOTAL: CENTRALĂ FOTOVOLTAICĂ + STOCARE", totalCols: ["Nr.", "Denumire", "Total fără TVA", "TVA", "Total cu TVA"],
             totalWith: "Total: centrala + {x}", bessWord: "BESS",
             sharedPv: "Linia de racordare MT, sistemul SCADA și darea în exploatare MT sunt comune cu centrala fotovoltaică și sunt incluse în oferta acesteia.",
-            totalNote: "Oferta detaliată pentru fiecare componentă — pe paginile anterioare. Lucrările comune (proiectare, transport, darea în exploatare) sunt incluse în fiecare componentă; la realizarea împreună se optimizează în oferta finală."
+            payContract: "conform contractului",
+            // ---- обложка D (2026-10-31): схема станции, цена, оценка на год, что входит ----
+            scheme: "Cum funcționează sistemul",
+            nPv: "Panouri fotovoltaice", nInv: "Invertor", nInvHyb: "Invertor hibrid", nBat: "Acumulator", nBess: "Stocare (BESS)",
+            nSrc: "Sursa", nSrcVal: "Rețea", nSrcNote: "sau centrala fotovoltaică existentă",
+            nEnd: {
+                zero: ["Consum propriu", "Autoconsum", "fără livrare în rețea (Zero Export)"],
+                netb: ["Consum și rețea", "Facturare netă", "surplusul — în rețea (prosumator)"],
+                grid: ["Rețea", "Livrare în rețea", "conform avizului de racordare"],
+                bess: ["Consum", "Consum propriu", ""]
+            },
+            nLimit: "limita în rețea {x} kW", nUsable: "LFP · utilă ≈ {kwh} kWh", nVariants: "variante: {n} — vezi prețul",
+            cTotal: "Total cu TVA, la cheie", cTotalNoVat: "Total, la cheie", cWithVariant: " · centrala + varianta {n}", cVariant: " · varianta {n}",
+            cNetVat: "{net} fără TVA · TVA {vat}", cEst: "Preț estimativ — se confirmă după vizita tehnică.", cFirm: "Preț ferm pe durata valabilității ofertei.",
+            cPerKwp: "Preț pe 1 kWp{x}, {vat}", cPerKwh: "Preț pe 1 kWh, {vat}", cNet: "fără TVA", cGross: "cu TVA",
+            cNote: "Plata — conform contractului. Livrare — până la 30 de zile, montaj și punere în funcțiune — până la 30 de zile de la livrare. Detaliat — pe paginile următoare.",
+            cParts: "Lucrările comune (proiectare, transport, darea în exploatare) sunt incluse în fiecare componentă; la realizarea împreună se optimizează în oferta finală.",
+            rTitle: "Rezultatul estimat pe an", rStoreTitle: "Sistemul de stocare", rProd: "Producție", rSave: "Economie", rPay: "Recuperarea investiției",
+            rOut: "La pană de curent", rOutVal: "≈ {kwh} kWh utili", rStore: "Stocare utilă",
+            incTitle: "Inclus în preț", notTitle: "Nu este inclus",
+            inc: ["Echipamente noi, cu garanția producătorului", "Proiect de execuție și autorizații", "Montaj, punere în funcțiune și admitere în exploatare"],
+            incGrid: "Dosarul la operatorul de rețea", incProsumer: " și contractul de prosumator",
+            incServ: ["Garanție la lucrări 5 ani; mentenanță gratuită 36 de luni", "Intervenție la defect — până la 48 de ore"],
+            notRoof: "Consolidarea acoperișului",
+            not: ["Instalația de împământare a clădirii", "Lucrările în rețeaua interioară", "Taxele operatorului de rețea și ale autorităților, dacă nu sunt în tabel", "Alte lucrări — doar prin anexă la contract"],
+            ask: "Aveți întrebări? Sunați-ne"
         },
         ru: {
             kicker: "КОММЕРЧЕСКОЕ ПРЕДЛОЖЕНИЕ", sub: "на реализацию энергетического проекта", variant: "Вариант {n}",
@@ -157,7 +180,6 @@
             bNote: "КПД цикла, число циклов, гарантия ёмкости, охлаждение и сертификаты — по техпаспорту производителя{fin}.",
             bNoteFin: ", он прилагается к финальному предложению",
             terms: "КОММЕРЧЕСКИЕ УСЛОВИЯ", pay: "Оплата",
-            payStages: ["аванс в течение 3 банковских дней после подписания договора", "при поставке оборудования", "после монтажа и пуска", "в течение 3 банковских дней после допуска в эксплуатацию"],
             term: "Сроки", termVal: "поставка оборудования — до 30 календарных дней после аванса и авиза на подключение; монтаж и пуск — до 30 дней после поставки; допуск в эксплуатацию — до 30 рабочих дней",
             warr: "Гарантии", wPv: "панели 10–15 лет", wInv: "инверторы 5–10 лет", wMount: "крепёж 10 лет", wBat: "аккумуляторы — по производителю", wWorks: "монтажные работы 5 лет",
             wNote: " (оборудование — по паспорту производителя)",
@@ -168,10 +190,33 @@
             rClient: "Клиент", rClientVal: "документы и доверенности для оформления; доступ на объект; подготовка места установки; охрана оборудования на объекте до окончательной приёмки",
             rNot: "Не входит", rNotRoof: "усиление крыши; ",
             rNotVal: "контур заземления здания, работы во внутренней сети, сборы оператора сети и госорганов — если их нет в таблице; другие работы — только дополнением к договору",
-            totalKicker: "ИТОГО: СЭС + НАКОПИТЕЛЬ", totalCols: ["№", "Наименование", "Итого без TVA", "TVA", "Итого с TVA"],
             totalWith: "Итого: СЭС + {x}", bessWord: "BESS",
             sharedPv: "Линия СН, SCADA и сдача в эксплуатацию на СН — общие с солнечной станцией и входят в её предложение.",
-            totalNote: "Подробное предложение по каждой части — на предыдущих страницах. Общие работы (проект, транспорт, сдача в эксплуатацию) входят в каждую часть; если строим вместе, они уменьшатся в финальном предложении."
+            payContract: "по договору",
+            scheme: "Как работает система",
+            nPv: "Солнечные панели", nInv: "Инвертор", nInvHyb: "Гибридный инвертор", nBat: "Аккумулятор", nBess: "Накопитель (BESS)",
+            nSrc: "Источник", nSrcVal: "Сеть", nSrcNote: "или действующая солнечная станция",
+            nEnd: {
+                zero: ["Своё потребление", "Самопотребление", "без выдачи в сеть (Zero Export)"],
+                netb: ["Потребление и сеть", "Facturare netă", "излишки — в сеть (просюмер)"],
+                grid: ["Сеть", "Выдача в сеть", "по авизу на подключение"],
+                bess: ["Потребление", "Своё потребление", ""]
+            },
+            nLimit: "лимит выдачи {x} кВт", nUsable: "LFP · полезная ≈ {kwh} кВт·ч", nVariants: "вариантов: {n} — см. цену",
+            cTotal: "Итого с TVA, под ключ", cTotalNoVat: "Итого, под ключ", cWithVariant: " · СЭС + вариант {n}", cVariant: " · вариант {n}",
+            cNetVat: "{net} без TVA · TVA {vat}", cEst: "Цена ориентировочная — уточним после выезда на объект.", cFirm: "Цена твёрдая на срок действия предложения.",
+            cPerKwp: "Цена за 1 кВтп{x}, {vat}", cPerKwh: "Цена за 1 кВт·ч, {vat}", cNet: "без TVA", cGross: "с TVA",
+            cNote: "Оплата — по договору. Поставка — до 30 дней, монтаж и пуск — до 30 дней после поставки. Подробно — на следующих страницах.",
+            cParts: "Общие работы (проект, транспорт, сдача в эксплуатацию) входят в каждую часть; если строим вместе, они уменьшатся в финальном предложении.",
+            rTitle: "Оценка на год", rStoreTitle: "Накопитель", rProd: "Выработка", rSave: "Экономия", rPay: "Окупаемость",
+            rOut: "При отключении сети", rOutVal: "≈ {kwh} кВт·ч полезной энергии", rStore: "Полезная ёмкость",
+            incTitle: "Входит в цену", notTitle: "Не входит",
+            inc: ["Новое оборудование с гарантией производителя", "Рабочий проект и разрешения", "Монтаж, пуск и допуск в эксплуатацию"],
+            incGrid: "Документы у оператора сети", incProsumer: " и договор просюмера",
+            incServ: ["Гарантия на работы 5 лет; бесплатное обслуживание 36 месяцев", "Выезд на неисправность — до 48 часов"],
+            notRoof: "Усиление крыши",
+            not: ["Контур заземления здания", "Работы во внутренней сети", "Сборы оператора сети и госорганов, если их нет в таблице", "Другие работы — только дополнением к договору"],
+            ask: "Есть вопросы? Звоните"
         }
     };
 
@@ -192,6 +237,21 @@
             zero_export: "работа без выдачи излишков в сеть (Zero Export)",
             hybrid: "самопотребление, резерв и ограничение экспорта"
         }
+    };
+    // цель накопителя коротко — подпись последнего значка схемы у BESS без СЭС
+    const GOAL_SHORT = {
+        ro: { backup: "Rezervă", peak_shaving: "Peak shaving", arbitrage: "Arbitraj", self_consumption: "Autoconsum", zero_export: "Zero Export", hybrid: "Autoconsum și rezervă" },
+        ru: { backup: "Резерв", peak_shaving: "Снижение пиков", arbitrage: "Арбитраж", self_consumption: "Самопотребление", zero_export: "Zero Export", hybrid: "Самопотребление и резерв" }
+    };
+
+    // Значки схемы на обложке — inline SVG с размерами (html2canvas рисует их картинкой)
+    const ICONS = {
+        pv: '<svg width="58" height="42" viewBox="0 0 58 42" aria-hidden="true"><rect x="2" y="13" width="44" height="27" fill="#2b3440"/><path d="M16.7 13v27M31.3 13v27M2 26.5h44" stroke="#fff" stroke-width="1.2"/><circle cx="48" cy="10" r="8" fill="#ffbd18"/></svg>',
+        inv: '<svg width="42" height="42" viewBox="0 0 42 42" aria-hidden="true"><rect x="5" y="3" width="32" height="36" rx="3" fill="#fff" stroke="#1f2328" stroke-width="2.2"/><path d="M12 21c3-8 6-8 9 0s6 8 9 0" fill="none" stroke="#1f2328" stroke-width="2.6" stroke-linecap="round"/></svg>',
+        bat: '<svg width="42" height="42" viewBox="0 0 42 42" aria-hidden="true"><rect x="16" y="1" width="10" height="4" fill="#1f2328"/><rect x="9" y="5" width="24" height="35" rx="2" fill="#fff" stroke="#1f2328" stroke-width="2.2"/><rect x="13" y="9" width="16" height="8" fill="#e3e6ea"/><rect x="13" y="20" width="16" height="8" fill="#ffbd18"/><rect x="13" y="31" width="16" height="6" fill="#ffbd18"/></svg>',
+        home: '<svg width="46" height="42" viewBox="0 0 46 42" aria-hidden="true"><path d="M23 2L2 20h42z" fill="#1f2328"/><rect x="8" y="19" width="30" height="21" fill="#fff" stroke="#1f2328" stroke-width="2.2"/><rect x="19.5" y="27" width="7" height="13" fill="#ffbd18"/></svg>',
+        biz: '<svg width="50" height="42" viewBox="0 0 50 42" aria-hidden="true"><path d="M3 40V19l11 7v-7l11 7v-7l11 7V5h9v35z" fill="#fff" stroke="#1f2328" stroke-width="2.2" stroke-linejoin="round"/><rect x="9" y="31" width="7" height="5" fill="#ffbd18"/><rect x="21" y="31" width="7" height="5" fill="#ffbd18"/><rect x="33" y="31" width="7" height="5" fill="#ffbd18"/></svg>',
+        grid: '<svg width="42" height="42" viewBox="0 0 42 42" aria-hidden="true"><path d="M21 2L12 40M21 2l9 38M9 11h24M11 20h20M14 11l13 9M28 11l-13 9M13 29h16M13 29l15 8M29 29l-15 8" fill="none" stroke="#1f2328" stroke-width="2.2" stroke-linecap="round"/></svg>'
     };
 
     function esc(v) {
@@ -256,20 +316,13 @@
         return `${s} ${d === 1 && n !== 11 ? "год" : d >= 2 && d <= 4 && (n < 12 || n > 14) ? "года" : "лет"}`;
     }
 
-    // Оплата по этапам: «50/50», «30/60/10» → [50, 50]; null — непонятно или в сумме не 100
+    // Оплата по этапам: «50/50», «30/60/10» → [50, 50]; null — непонятно или в сумме не 100.
+    // В КП этапов нет — «conform contractului» (решение 2026-10-31); поле — для записки КД.
     function parsePayment(s) {
         const parts = String(s || "").split(/[\/+;\s]+/).filter(Boolean).map(x => Number(x.replace("%", "").replace(",", ".")));
         if (!parts.length || parts.some(x => !(x > 0)) || Math.abs(parts.reduce((a, b) => a + b, 0) - 100) > 0.01) return null;
         return parts;
     }
-    // этапы: первый — аванс, последний — после допуска, между ними — поставка, затем монтаж и пуск
-    function paymentText(parts, t) {
-        const st = t.payStages;
-        const n = parts.length;
-        const labels = n === 1 ? [st[3]] : n === 2 ? [st[0], st[3]] : [st[0], st[1], ...Array(n - 3).fill(st[2]), st[3]];
-        return parts.map((p, i) => `${qtyFmt(p)}% — ${labels[i]}`).join("; ");
-    }
-
     // Выработка, экономия и окупаемость (решение 7). Экономия — только при введённом потреблении:
     // прямое потребление по тарифу, излишки по кредиту facturare netă (до 200 кВт, не Zero Export),
     // не больше годового счёта. Окупаемость: дом — от цены с TVA, бизнес — без TVA.
@@ -292,10 +345,169 @@
         return { ...out, cons, tariff, share, netb, savings, payback: savings > 0 ? Math.round(price / savings * 2) / 2 : 0 };
     }
 
-    // Шапка, номер и подвал — общие для листа оффера и сводной страницы
-    function headHtml(t, ed, logo) {
+    // Режим СЭС: Zero Export, facturare netă (дом и до 200 кВт AC) или выдача по авизу; без СЭС — ""
+    function stationMode(info, meta) {
+        if (!(info.pvKwp > 0) || info.product === "bess") return "";
+        const acKw = Number(info.inverterKw) || info.pvKwp;
+        return meta.zeroExport ? "zero" : (info.segment === "home" || acKw <= EST.netLimitKw) ? "netb" : "grid";
+    }
+
+    // ---------- обложка (дизайн D, 2026-10-31): схема станции, цена, оценка на год, что входит ----------
+    // Первая страница A4 — сводка по всем листам оффера; таблица и условия — со второй.
+    // parts: [{ info, result, variant }]; x: { t, lang, ed, k, cur, final, blocks, head, title, meta }
+    function coverHtml(parts, meta, x) {
+        const { t, lang, ed, k, cur, final } = x;
+        const m0 = v => `${qtyFmt(Math.round(v / k))} ${cur}`;
+        const nm = i => lang === "ru" ? i.nameRu || i.name : i.name;
+        const eqBook = (window.RATEBOOK && window.RATEBOOK.equipment) || {};
+        const eqOf = i => String(i.rateId || "").startsWith("eq:") ? eqBook[i.rateId.slice(3)] : null;
+        const live = p => p.result.items.filter(i => Math.abs(i.totalSell) > 0.004);
+        const val = p => ({ net: p.result.commercialPrice, vat: p.result.vatAmount, gross: p.result.priceWithVat });
+        const add = (a, b) => ({ net: a.net + b.net, vat: a.vat + b.vat, gross: a.gross + b.gross });
+        const pv = parts.find(p => p.info.pvKwp > 0 && p.info.product !== "bess");
+        const bess = parts.filter(p => p.info.bessKwh > 0 && p.info.product !== "pv");
+        const home = (pv || parts[0]).info.segment === "home";
+        const vatOn = (pv || parts[0]).result.vatEnabled;
+        const modeKey = pv ? stationMode(pv.info, meta) : "";
+
+        // схема: панели → инвертор → накопитель → потребление и сеть (подпись — по режиму станции)
+        const node = (icon, label, value, note) => `
+      <div class="offer-scheme-node">
+        <div class="offer-scheme-icon">${ICONS[icon]}</div>
+        <span${ed}>${esc(label)}</span><strong${ed}>${esc(value)}</strong>${note ? `<small${ed}>${esc(note)}</small>` : ""}
+      </div>`;
+        // модели одного бренда — через «+»: «Huawei 6 × SUN2000-150KTL-MG0 + SUN2000-50KTL-M3»
+        const models = (its, kind) => {
+            const byBrand = {};
+            its.forEach(i => {
+                const e = eqOf(i);
+                if (e && e.kind === kind) (byBrand[e.brand] = byBrand[e.brand] || []).push(`${Number(i.quantity) > 1 ? qtyFmt(i.quantity) + " × " : ""}${e.model}`);
+            });
+            return Object.keys(byBrand).map(b => `${b} ${byBrand[b].join(" + ")}`).join("; ");
+        };
+        const nodes = [];
+        if (pv) {
+            const its = live(pv);
+            const panel = its.find(i => i.rateId === "pv_module_wp") || its.find(i => /^(panou|панель)/i.test(nm(i)));
+            const panelName = panel ? nm(panel).replace(/^(Panou fotovoltaic|Панель PV)\s*/i, "") : "";
+            const kwp = pv.info.pvKwp >= 1000 ? `${qtyFmt(pv.info.pvKwp / 1000)} MWp` : `${qtyFmt(pv.info.pvKwp)} kWp`;
+            nodes.push(node("pv", t.nPv, kwp, panelName && pv.info.panels ? `${qtyFmt(pv.info.panels)} × ${panelName}` : panelName));
+            const inv = its.filter(i => { const e = eqOf(i); return e ? e.kind === "inv" : /^inv_/.test(i.rateId || ""); });
+            const hybrid = inv.some(i => { const e = eqOf(i); return e ? e.fam !== "grid" : i.rateId === "inv_hybrid"; });
+            const invKw = Number(meta.acKw) || Number(pv.info.inverterKw) || 0;
+            if (inv.length || invKw) nodes.push(node("inv", hybrid ? t.nInvHyb : t.nInv, invKw ? `${qtyFmt(invKw)} kW` : "", models(inv, "inv") || (final ? "" : t.noModel)));
+        } else {
+            nodes.push(node("grid", t.nSrc, t.nSrcVal, t.nSrcNote));
+        }
+        const b0 = bess[0];
+        const usable = b0 ? Number(b0.info.usableKwh) || 0 : 0;
+        if (b0) {
+            const note = bess.length > 1 ? t.nVariants.replace("{n}", bess.length)
+                : b0.info.segment === "home" ? models(live(b0), "bat") || (final ? "LiFePO4" : t.noModel)
+                : usable > 0 ? t.nUsable.replace("{kwh}", qtyFmt(usable)) : "LFP";
+            nodes.push(node("bat", b0.info.segment === "home" ? t.nBat : t.nBess, bessSize(b0.info), note));
+        }
+        const end = t.nEnd[modeKey || "bess"];
+        const limit = meta.exportLimitKw > 0 ? t.nLimit.replace("{x}", qtyFmt(meta.exportLimitKw)) : "";
+        nodes.push(modeKey
+            ? node(home ? "home" : "biz", end[0], end[1], modeKey === "grid" && limit ? limit : end[2])
+            : node(home ? "home" : "biz", end[0], (meta.goal && GOAL_SHORT[lang][meta.goal]) || end[1], limit));
+
+        // цена: итог крупно, части (блоки A/B или листы с вариантами BESS), цена за кВтп
+        let hero, heroSuffix = "", rows;
+        if (parts.length === 1) {
+            hero = val(parts[0]);
+            rows = (x.blocks || []).map(b => ({ label: `${b.letter} · ${b.name}${b.title ? " " + b.title : ""}`, v: b.gross }));
+        } else {
+            const label = p => p === pv
+                ? `${t.blockPv} ${powerTitle({ ...p.info, product: "pv" }, meta, lang)}`
+                : p.variant ? `BESS ${bessSize(p.info)} · ${t.variant.replace("{n}", p.variant)}` : `${t.nBess} ${bessSize(p.info)}`;
+            rows = parts.map(p => ({ label: label(p), v: val(p).gross }));
+            if (pv) bess.forEach(b => rows.push({ label: t.totalWith.replace("{x}", b.variant ? t.variant.replace("{n}", b.variant) : t.bessWord), v: add(val(pv), val(b)).gross, total: true }));
+            hero = pv && b0 ? add(val(pv), val(b0)) : val(parts[0]);
+            if (bess.length > 1) heroSuffix = (pv ? t.cWithVariant : t.cVariant).replace("{n}", b0.variant);
+        }
+        // дому — цена за кВтп с TVA, бизнесу — без TVA; при нескольких блоках — блок СЭС
+        const perGross = vatOn && home;
+        const perVat = perGross ? t.cGross : t.cNet;
+        if (pv) {
+            const a = parts.length === 1 && x.blocks && x.blocks.find(b => b.key === "pv");
+            const v = a || val(pv);
+            rows.push({ label: t.cPerKwp.replace("{x}", a ? ` (${a.letter})` : "").replace("{vat}", perVat), text: m0((perGross ? v.gross : v.net) / pv.info.pvKwp), muted: true });
+        } else if (b0) {
+            const v = val(b0);
+            rows.push({ label: t.cPerKwh.replace("{vat}", perVat), text: m0((perGross ? v.gross : v.net) / b0.info.bessKwh), muted: true });
+        }
+        const price = `
+      <div class="offer-cover-price">
+        <div class="offer-cover-label"${ed}>${esc((vatOn ? t.cTotal : t.cTotalNoVat) + heroSuffix)}</div>
+        <div class="offer-cover-total">${esc(m0(vatOn ? hero.gross : hero.net))}</div>
+        <div class="offer-cover-sub"${ed}>${esc((vatOn ? t.cNetVat.replace("{net}", m0(hero.net)).replace("{vat}", m0(hero.vat)) + " · " : "") + (final ? t.cFirm : t.cEst))}</div>
+        <div class="offer-cover-rows">${rows.map(r => `
+          <div class="${r.total ? "is-total" : r.muted ? "is-muted" : ""}"><span${ed}>${esc(r.label)}</span><strong>${esc(r.text || m0(r.v))}</strong></div>`).join("")}
+        </div>
+        <p class="offer-cover-note"${ed}>${esc(t.cNote + (parts.length > 1 ? " " + t.cParts : ""))}</p>
+      </div>`;
+
+        // оценка на год (как в карточке «Estimare anuală») или данные накопителя без СЭС
+        const est = pv ? estimate(pv.info, pv.result, meta) : null;
+        const tile = (label, value) => `<div class="offer-cover-tile"><span${ed}>${esc(label)}</span><strong${ed}>${esc(value)}</strong></div>`;
+        const tiles = [];
+        if (est) {
+            tiles.push(tile(t.rProd, t.prodVal.replace("{kwh}", qtyFmt(Math.round(est.annual / 100) * 100))));
+            if (est.cons) tiles.push(tile(t.rSave, t.saveVal.replace("{sum}", qtyFmt(Math.round(est.savings / k / 10) * 10)).replace("{cur}", cur)));
+            if (est.payback) tiles.push(tile(t.rPay, "≈ " + yearsFmt(est.payback, lang)));
+        }
+        const hours = b0 && b0.info.bessKw > 0 ? qtyFmt(Math.round(b0.info.bessKwh / b0.info.bessKw * 10) / 10) : "";
+        if (b0 && usable > 0) {
+            if (b0.info.segment === "home") tiles.push(tile(t.rOut, t.rOutVal.replace("{kwh}", qtyFmt(usable))));
+            else if (est || !hours) tiles.push(tile(t.rStore, `≈ ${qtyFmt(usable)} kWh`));
+            else tiles.push(tile(t.rStore, `≈ ${qtyFmt(usable)} kWh`), tile(t.bPcs, `${qtyFmt(b0.info.bessKw)} kW`), tile(t.bDur, t.bDurVal.replace("{h}", hours)));
+        }
+        const num1 = v => String(v).replace(".", ",");
+        const resNote = est
+            ? t.estNote.replace("{y}", qtyFmt(est.perKwp)).replace("{tariff}", est.cons ? t.estTariff.replace("{t}", num1(est.tariff)) : "") + (est.cons && est.netb ? t.estNoteNet.replace("{credit}", num1(EST.credit)) : "")
+            : t.bNote.replace("{fin}", final ? "" : t.bNoteFin);
+        const results = !tiles.length ? "" : `
+      <div class="offer-cover-result">
+        <h3${ed}>${esc(est ? t.rTitle : t.rStoreTitle)}</h3>
+        <div class="offer-cover-tiles">${tiles.join("")}</div>
+        <p class="offer-cover-note"${ed}>${esc(resNote)}</p>
+      </div>`;
+
+        // что входит и что нет — коротко по договору NEBRECA; подробно — «Cine ce face» на следующих страницах
+        const inc = [...t.inc, t.incGrid + (modeKey === "netb" ? t.incProsumer : ""), ...t.incServ];
+        const not = [...(pv && meta.mount !== "ground" ? [t.notRoof] : []), ...t.not];
+        const list = (title, items, cls, mark) => `
+      <div class="offer-cover-list ${cls}">
+        <h3${ed}>${esc(title)}</h3>
+        <ul>${items.map(s => `<li><b>${mark}</b><span${ed}>${esc(s)}</span></li>`).join("")}</ul>
+      </div>`;
+
+        // offer-info-line в конце — точка разреза toCanvas: на A4 обложка занимает ровно лист, таблица — со второго
         return `
-  <img class="offer-watermark" src="${logo}" alt="" aria-hidden="true">
+  <section class="offer-cover">
+    ${x.head}
+    ${x.title}
+    ${x.meta}
+    <section class="offer-scheme">
+      <h3${ed}>${esc(t.scheme)}</h3>
+      <div class="offer-scheme-row">${nodes.join('<div class="offer-scheme-arrow">→</div>')}</div>
+    </section>
+    <div class="offer-cover-grid offer-info-grid">${price}${results}</div>
+    <div class="offer-cover-grid offer-info-grid">${list(t.incTitle, inc, "is-inc", "√")}${list(t.notTitle, not, "is-not", "–")}</div>
+    <div class="offer-cover-contact">
+      <span${ed}>${esc(t.ask)}</span>
+      <strong${ed}>${esc([meta.manager || "Nikita Ungureanu", meta.managerRole || "Project Manager", meta.managerPhone || "—", meta.managerEmail || COMPANY_EMAIL].join(" · "))}</strong>
+    </div>
+    <div class="offer-cover-end offer-info-line"></div>
+  </section>`;
+    }
+
+    // Шапка, номер и подвал листа оффера; на обложке — без водяного знака
+    function headHtml(t, ed, logo, watermark = true) {
+        return `${watermark ? `
+  <img class="offer-watermark" src="${logo}" alt="" aria-hidden="true">` : ""}
   <header class="offer-brand-header">
     <div class="offer-brand-logo-wrap"><img class="offer-brand-logo" src="${logo}" alt="OPTISOLAR renewed energy"></div>
     <div class="offer-company-details">
@@ -433,6 +645,14 @@
       ${extra}
     </div>
   </div>`;
+        // итог блока A / B — одной строкой; жёлтый — только у общего итога (дизайн 2026-10-31)
+        const blockTotal = (net, vat, gross, label) => `
+  <div class="offer-summary-wrap offer-block-total">
+    <span${ed}>${esc(label)}</span>
+    <span>${esc(t.subtotal)} <b>${m(net)}</b></span>
+    ${vatOn ? `<span>${esc(t.vat)} <b>${m(vat)}</b></span>` : ""}
+    <strong>${m(gross)} ${cur}</strong>
+  </div>`;
         const tableHtml = bodyHtml => `
   <div class="offer-table-wrap">
     <table class="offer-pricing-table">
@@ -490,7 +710,7 @@
   <section class="offer-block">
     <div${edc("offer-block-title")}><span class="offer-block-letter">${b.letter}</span> ${esc(b.name)}${b.title ? " — " + esc(b.title) : ""}</div>
     ${tableHtml(rows)}
-    ${summaryBox(net, vat, gross, (vatOn ? t.blockTotal : t.blockTotalNoVat).replace("{x}", b.letter), "")}
+    ${blockTotal(net, vat, gross, (vatOn ? t.blockTotal : t.blockTotalNoVat).replace("{x}", b.letter))}
   </section>`;
             }).join("") + summaryBox(allNet, result.vatAmount, allGross,
                 (vatOn ? t.grandTotal : t.grandTotalNoVat).replace("{x}", letters), finalPer, "offer-summary-all");
@@ -501,8 +721,8 @@
         }
 
         // ---- карточки рядом с клиентом: режим и цель, оценка на год (СЭС), данные накопителя (бизнес) ----
-        const acKw = Number(info.inverterKw) || info.pvKwp;
-        const mode = !hasPv ? "" : meta.zeroExport ? t.modes.zero : (info.segment === "home" || acKw <= EST.netLimitKw) ? t.modes.netb : t.modes.grid;
+        const modeKey = stationMode(info, meta);
+        const mode = modeKey ? t.modes[modeKey] : "";
         const goal = hasBat && meta.goal ? (GOALS[lang][meta.goal] || "") : "";
         const usable = Number(info.usableKwh) || 0;
         const est = estimate(info, result, meta);
@@ -527,22 +747,22 @@
       ${goal ? line(t.goal, goal) : ""}
       <p class="offer-card-note"${ed}>${esc(t.bNote.replace("{fin}", final ? "" : t.bNoteFin))}</p>
     </section>`;
-        const sideCards = estCard + bessCard;
+        const cover = Array.isArray(opts.cover) && opts.cover.length ? opts.cover : null;
+        const sideCards = (cover ? "" : estCard) + bessCard;
 
         // ---- условия (решение 2) и кто за что отвечает (4.5) ----
-        const pay = parsePayment(meta.payment) || [50, 50];
         const warr = [hasPv && t.wPv, (hasPv || Number(info.inverterKw) > 0) && t.wInv, hasPv && t.wMount, hasBat && t.wBat, t.wWorks].filter(Boolean).join(", ");
         const termsHtml = `
   <section class="offer-info-card offer-terms-card">
     <h3><span>§</span> ${esc(t.terms)}</h3>
-    ${line(t.pay, paymentText(pay, t))}
+    ${line(t.pay, t.payContract)}
     ${line(t.term, t.termVal)}
     ${line(t.warr, warr.charAt(0).toUpperCase() + warr.slice(1) + t.wNote)}
     ${line(t.serv, t.servVal)}
   </section>
   <section class="offer-info-card offer-terms-card">
     <h3><span>⇄</span> ${esc(t.roles)}</h3>
-    ${line(t.rUs, t.rUsVal + (hasPv && !meta.zeroExport ? t.rUsProsumer : ""))}
+    ${line(t.rUs, t.rUsVal + (modeKey === "netb" ? t.rUsProsumer : ""))}
     ${line(t.rClient, t.rClientVal)}
     ${line(t.rNot, (hasPv && meta.mount !== "ground" ? t.rNotRoof : "") + t.rNotVal)}
   </section>`;
@@ -557,17 +777,32 @@
             t.n3, ...(info.sharedWithPv ? [t.sharedPv] : []), final ? t.n4Final : t.n4, t.n5, t.n6
         ];
         const logo = esc(opts.logo || "");
+        // на обложке под заголовком — клиент; на остальных листах — как раньше
+        const forWhom = [meta.client, meta.location].filter(Boolean).join(", ");
+        const coverPv = cover && cover.length > 1 ? cover.find(p => p.info.product === "pv") : null;
+        const coverBess = cover && cover.length > 1 ? cover.filter(p => p.info.product !== "pv") : [];
+        const heading = cover && cover.length > 1
+            ? [coverPv ? powerTitle({ ...coverPv.info, product: "pv" }, meta, lang) : "",
+                coverBess.length > 1 ? "BESS " + coverBess.map(b => qtyFmt(b.info.bessKwh)).join(" / ") + " kWh" : coverBess.map(b => "BESS " + bessSize(b.info)).join("")].filter(Boolean).join(" + ")
+            : powerTitle(info, meta, lang) + variantTitle;
+        const kind = coverPv && coverBess.length ? stations.pv_bess : station;
+        const title = `
+  <section class="offer-title-block">
+    <div class="offer-kicker">${esc(final ? t.kicker : t.kickerPrelim)}</div>
+    <h1${ed}>${esc(heading)}</h1>
+    <p${ed}>${esc(kind)}${cover && forWhom ? " · " + esc(forWhom) : " — " + esc(t.sub)}</p>
+    <div class="offer-yellow-rule"></div>
+  </section>`;
+        const top = cover
+            ? coverHtml(cover, meta, {
+                t, lang, ed, k, cur, final, head: headHtml(t, ed, logo, false), title, meta: metaHtml(t, edc, number, now, valid, days),
+                blocks: blocks.map(b => ({ key: b.key, letter: b.letter, name: b.name, title: b.title, net: sum(b.its, "totalSell"), gross: sum(b.its, "totalWithVat") }))
+            })
+            : headHtml(t, ed, logo) + title + metaHtml(t, edc, number, now, valid, days);
 
         return `
 <article class="offer-document" lang="${lang}">
-  ${headHtml(t, ed, logo)}
-  <section class="offer-title-block">
-    <div class="offer-kicker">${esc(final ? t.kicker : t.kickerPrelim)}</div>
-    <h1${ed}>${esc(powerTitle(info, meta, lang) + variantTitle)}</h1>
-    <p${ed}>${esc(station)} — ${esc(t.sub)}</p>
-    <div class="offer-yellow-rule"></div>
-  </section>
-  ${metaHtml(t, edc, number, now, valid, days)}
+  ${top}
   <div class="offer-info-grid${sideCards ? " two" : ""}">
     <section class="offer-info-card">
       <h3><span>▦</span> ${esc(t.client)}</h3>
@@ -591,67 +826,8 @@
         <h3><span>▤</span> ${esc(t.note)}</h3>
         <ol>${notes.map(n => `<li${ed}>${esc(n)}</li>`).join("")}</ol>
       </section>
-      ${contactHtml(t, line, meta)}
+      ${cover ? "" : contactHtml(t, line, meta)}
     </div>
-    ${signatureHtml(t, ed, meta)}
-  </div>
-  ${referencesBlock(opts.references, lang, t, ed)}
-  ${footHtml(t)}
-</article>`;
-    }
-
-    // Сводная страница бизнеса «СЭС + BESS» (4.x ревизии): части и сумма СЭС с каждым вариантом накопителя.
-    // parts: [{ info, result, variant }] — листы в оффере; цены не меняются, общие работы не вычитаются (это решение — потом)
-    function renderTotal(parts, meta, opts) {
-        const lang = opts.lang === "ru" ? "ru" : "ro";
-        const t = T[lang];
-        const eur = opts.currency === "EUR";
-        const cur = eur ? "EUR" : "MDL";
-        const k = eur ? (Number(opts.fx) || 1) : 1;
-        const m = x => `${money(x / k)} ${cur}`;
-        const now = opts.now || new Date();
-        const days = meta.validDays || 7;
-        const valid = new Date(now);
-        valid.setDate(valid.getDate() + days);
-        const ed = opts.editable ? ' contenteditable="true" class="offer-editable"' : "";
-        const edc = cls => opts.editable ? ` contenteditable="true" class="offer-editable ${cls}"` : ` class="${cls}"`;
-        const line = (label, value) => `<div class="offer-info-line"><span>${esc(label)}</span><strong${ed}>${esc(value)}</strong></div>`;
-        const pv = parts.find(p => p.info.product === "pv");
-        const bess = parts.filter(p => p !== pv);
-        const label = p => p === pv
-            ? `${t.blockPv} ${powerTitle({ ...p.info, product: "pv" }, meta, lang)}`
-            : `${t.blockBess}${p.variant ? " — " + t.variant.replace("{n}", p.variant) : ""}: ${bessSize(p.info)}`;
-        const val = p => ({ net: p.result.commercialPrice, vat: p.result.vatAmount, gross: p.result.priceWithVat });
-        let nr = 0;
-        const tr = (name, v, cls) => {
-            nr += 1;
-            return `<tr${cls ? ` class="${cls}"` : ""}><td class="c-n">${nr}</td><td${edc("c-name offer-description-cell")}>${esc(name)}</td><td class="c-net">${m(v.net)}</td><td class="c-vat">${m(v.vat)}</td><td class="c-total">${m(v.gross)}</td></tr>`;
-        };
-        const rows = parts.map(p => tr(label(p), val(p))).join("") + (pv ? bess.map(b => {
-            const a = val(pv), c = val(b);
-            return tr(t.totalWith.replace("{x}", b.variant ? t.variant.replace("{n}", b.variant) : t.bessWord), { net: a.net + c.net, vat: a.vat + c.vat, gross: a.gross + c.gross }, "offer-total-row");
-        }).join("") : "");
-        const title = [pv ? powerTitle({ ...pv.info, product: "pv" }, meta, lang) : "", ...bess.map(b => "BESS " + bessSize(b.info))].filter(Boolean).join(" + ");
-        const logo = esc(opts.logo || "");
-        return `
-<article class="offer-document offer-total-doc" lang="${lang}">
-  ${headHtml(t, ed, logo)}
-  <section class="offer-title-block">
-    <div class="offer-kicker">${esc(t.totalKicker)}</div>
-    <h1${ed}>${esc(title)}</h1>
-    <p${ed}>${esc(meta.client || "")}${meta.location ? " · " + esc(meta.location) : ""}</p>
-    <div class="offer-yellow-rule"></div>
-  </section>
-  ${metaHtml(t, edc, opts.number || offerNumber(meta, now), now, valid, days)}
-  <div class="offer-table-wrap">
-    <table class="offer-pricing-table offer-total-table">
-      <thead><tr>${t.totalCols.map((c, i) => `<th class="${["c-n", "c-name", "c-net", "c-vat", "c-total"][i]}">${esc(c)}</th>`).join("")}</tr></thead>
-      <tbody>${rows}</tbody>
-    </table>
-  </div>
-  <p class="offer-card-note offer-total-note"${ed}>${esc(t.totalNote)}</p>
-  <div class="offer-bottom-grid">
-    <div class="offer-bottom-left">${contactHtml(t, line, meta)}</div>
     ${signatureHtml(t, ed, meta)}
   </div>
   ${referencesBlock(opts.references, lang, t, ed)}
@@ -835,5 +1011,5 @@
         return out;
     }
 
-    window.EPC_OFFER = { render, renderTotal, estimate, parsePayment, EST, toCanvas, pdfFromCanvas, pdfFromCanvases, stackCanvases, a4Pages, pageImage, phoneSize, A4, deliver, inTelegram, offerNumber, money, powerTitle, GROUPS };
+    window.EPC_OFFER = { render, estimate, parsePayment, EST, toCanvas, pdfFromCanvas, pdfFromCanvases, stackCanvases, a4Pages, pageImage, phoneSize, A4, deliver, inTelegram, offerNumber, money, powerTitle, GROUPS };
 })();

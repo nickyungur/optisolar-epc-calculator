@@ -679,7 +679,7 @@
             .filter(a => forNote || a.level === "bad").forEach(a => list.push({ ...a, text: `${x.name}: ${a.text}` })));
         const oa = offerAlert();
         if (oa) list.push(oa);
-        if (!OFFER.parsePayment(state.payment)) list.push({ level: "warn", text: `Оплата «${state.payment || ""}»: не понял этапы. Доли через «/», в сумме 100 — 50/50 или 30/60/10. В оффере пока 50/50.` });
+        if (!OFFER.parsePayment(state.payment)) list.push({ level: "warn", text: `Оплата «${state.payment || ""}»: не понял этапы. Доли через «/», в сумме 100 — 50/50 или 30/60/10. В записке КД пока 50/50 (в оффере — «по договору»).` });
         return list;
     }
 
@@ -1300,7 +1300,8 @@
 
     // Оффер всегда виден в конце страницы и собирается заново при каждом пересчёте.
     // Листы с галочкой «в оффере» — отдельными офферами друг под другом (в PDF A4 — каждый с новой страницы);
-    // фото объектов — под последним листом.
+    // у первого листа — обложка по всем листам (схема, цена, оценка на год; дизайн 2026-10-31),
+    // она заменила сводную страницу «СЭС + BESS»; фото объектов — под последним листом.
     function renderOffer() {
         if (!last) return;
         renderOfferNo();
@@ -1309,23 +1310,17 @@
         if (!list.length) { $("offerDoc").innerHTML = '<p class="hint">Ни один лист не отмечен «в оффере» — отметь в шаге ③.</p>'; return; }
         const bessCount = list.filter(x => isBessSheet(x.sheet)).length;
         const no = offerNo();
-        // бизнес: СЭС и хотя бы один вариант BESS в оффере — последней страницей сводная «СЭС + BESS» (волна 2)
-        const withTotal = sheetsMode() && list.some(x => x.sheet === "pv") && bessCount > 0;
-        const count = list.length + (withTotal ? 1 : 0);
-        const numberOf = i => no.number + (count > 1 ? "/" + (i + 1) : "");
+        const numberOf = i => no.number + (list.length > 1 ? "/" + (i + 1) : "");
         let b = 0;
-        const parts = [];
-        let html = list.map((x, i) => {
-            const variant = isBessSheet(x.sheet) && bessCount > 1 ? ++b : 0;
+        const parts = list.map(x => {
             const st = offerState(x);
-            parts.push({ info: st.info, result: st.result, variant });
-            return OFFER.render(st, offerOpts({
-                editable: true, number: numberOf(i), now: isoDate(no.date), variant,
-                references: !withTotal && i === list.length - 1 ? chosenReferences() : []
-            }));
-        }).join("");
-        if (withTotal) html += OFFER.renderTotal(parts, offerState(list[0]).meta, offerOpts({ editable: true, number: numberOf(list.length), now: isoDate(no.date) }));
-        $("offerDoc").innerHTML = html;
+            return { st, info: st.info, result: st.result, variant: isBessSheet(x.sheet) && bessCount > 1 ? ++b : 0 };
+        });
+        $("offerDoc").innerHTML = parts.map((p, i) => OFFER.render(p.st, offerOpts({
+            editable: true, number: numberOf(i), now: isoDate(no.date), variant: p.variant,
+            cover: i === 0 ? parts : null,
+            references: i === list.length - 1 ? chosenReferences() : []
+        }))).join("");
     }
 
     // ---------- номер оффера (ревизия 2026-10-29: номер и дата менялись при каждом открытии) ----------
