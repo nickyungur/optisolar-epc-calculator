@@ -91,8 +91,6 @@
             rUsVal: "livrarea echipamentelor noi, montajul, punerea în funcțiune și admiterea în exploatare; dosarul la operatorul de rețea: avizul de racordare, proiectul de execuție, declarația electricianului autorizat, actul de delimitare",
             rUsProsumer: "; contractul de prosumator cu furnizorul de energie",
             rClient: "Beneficiarul", rClientVal: "actele și împuternicirile pentru dosar; accesul la obiect; pregătirea locului de instalare; paza echipamentelor pe șantier până la recepția finală",
-            rNot: "Nu este inclus", rNotRoof: "consolidarea acoperișului; ",
-            rNotVal: "instalația de împământare a clădirii, lucrările în rețeaua interioară, taxele operatorului de rețea și ale autorităților — dacă nu sunt în tabel; alte lucrări — doar prin anexă la contract",
             totalWith: "Total: centrala + {x}", bessWord: "BESS",
             sharedPv: "Linia de racordare MT, sistemul SCADA și darea în exploatare MT sunt comune cu centrala fotovoltaică și sunt incluse în oferta acesteia.",
             payContract: "conform contractului",
@@ -114,12 +112,10 @@
             cParts: "Lucrările comune (proiectare, transport, darea în exploatare) sunt incluse în fiecare componentă; la realizarea împreună se optimizează în oferta finală.",
             rTitle: "Rezultatul estimat pe an", rStoreTitle: "Sistemul de stocare", rProd: "Producție", rSave: "Economie", rPay: "Recuperarea investiției",
             rOut: "La pană de curent", rOutVal: "≈ {kwh} kWh utili", rStore: "Stocare utilă",
-            incTitle: "Inclus în preț", notTitle: "Nu este inclus",
+            incTitle: "Inclus în preț",
             inc: ["Echipamente noi, cu garanția producătorului", "Proiect de execuție și autorizații", "Montaj, punere în funcțiune și admitere în exploatare"],
             incGrid: "Dosarul la operatorul de rețea", incProsumer: " și contractul de prosumator",
             incServ: ["Garanție la lucrări 5 ani; mentenanță gratuită 36 de luni", "Intervenție la defect — până la 48 de ore"],
-            notRoof: "Consolidarea acoperișului",
-            not: ["Instalația de împământare a clădirii", "Lucrările în rețeaua interioară", "Taxele operatorului de rețea și ale autorităților, dacă nu sunt în tabel", "Alte lucrări — doar prin anexă la contract"],
             ask: "Aveți întrebări? Sunați-ne"
         },
         ru: {
@@ -188,8 +184,6 @@
             rUsVal: "поставка нового оборудования, монтаж, пуск и допуск в эксплуатацию; документы у оператора сети: авиз на подключение, рабочий проект, декларация аттестованного электрика, акт разграничения",
             rUsProsumer: "; договор просюмера с поставщиком энергии",
             rClient: "Клиент", rClientVal: "документы и доверенности для оформления; доступ на объект; подготовка места установки; охрана оборудования на объекте до окончательной приёмки",
-            rNot: "Не входит", rNotRoof: "усиление крыши; ",
-            rNotVal: "контур заземления здания, работы во внутренней сети, сборы оператора сети и госорганов — если их нет в таблице; другие работы — только дополнением к договору",
             totalWith: "Итого: СЭС + {x}", bessWord: "BESS",
             sharedPv: "Линия СН, SCADA и сдача в эксплуатацию на СН — общие с солнечной станцией и входят в её предложение.",
             payContract: "по договору",
@@ -210,12 +204,10 @@
             cParts: "Общие работы (проект, транспорт, сдача в эксплуатацию) входят в каждую часть; если строим вместе, они уменьшатся в финальном предложении.",
             rTitle: "Оценка на год", rStoreTitle: "Накопитель", rProd: "Выработка", rSave: "Экономия", rPay: "Окупаемость",
             rOut: "При отключении сети", rOutVal: "≈ {kwh} кВт·ч полезной энергии", rStore: "Полезная ёмкость",
-            incTitle: "Входит в цену", notTitle: "Не входит",
+            incTitle: "Входит в цену",
             inc: ["Новое оборудование с гарантией производителя", "Рабочий проект и разрешения", "Монтаж, пуск и допуск в эксплуатацию"],
             incGrid: "Документы у оператора сети", incProsumer: " и договор просюмера",
             incServ: ["Гарантия на работы 5 лет; бесплатное обслуживание 36 месяцев", "Выезд на неисправность — до 48 часов"],
-            notRoof: "Усиление крыши",
-            not: ["Контур заземления здания", "Работы во внутренней сети", "Сборы оператора сети и госорганов, если их нет в таблице", "Другие работы — только дополнением к договору"],
             ask: "Есть вопросы? Звоните"
         }
     };
@@ -475,14 +467,9 @@
         <p class="offer-cover-note"${ed}>${esc(resNote)}</p>
       </div>`;
 
-        // что входит и что нет — коротко по договору NEBRECA; подробно — «Cine ce face» на следующих страницах
+        // что входит — коротко по договору NEBRECA; подробно — «Cine ce face» на следующих страницах.
+        // «Nu este inclus» не печатаем: отпугивает клиента (решение 2026-11-02), границы работ — в договоре
         const inc = [...t.inc, t.incGrid + (modeKey === "netb" ? t.incProsumer : ""), ...t.incServ];
-        const not = [...(pv && meta.mount !== "ground" ? [t.notRoof] : []), ...t.not];
-        const list = (title, items, cls, mark) => `
-      <div class="offer-cover-list ${cls}">
-        <h3${ed}>${esc(title)}</h3>
-        <ul>${items.map(s => `<li><b>${mark}</b><span${ed}>${esc(s)}</span></li>`).join("")}</ul>
-      </div>`;
 
         // offer-info-line в конце — точка разреза toCanvas: на A4 обложка занимает ровно лист, таблица — со второго
         return `
@@ -495,7 +482,10 @@
       <div class="offer-scheme-row">${nodes.join('<div class="offer-scheme-arrow">→</div>')}</div>
     </section>
     <div class="offer-cover-grid offer-info-grid">${price}${results}</div>
-    <div class="offer-cover-grid offer-info-grid">${list(t.incTitle, inc, "is-inc", "√")}${list(t.notTitle, not, "is-not", "–")}</div>
+    <div class="offer-cover-list offer-info-grid">
+      <h3${ed}>${esc(t.incTitle)}</h3>
+      <ul>${inc.map(s => `<li><b>√</b><span${ed}>${esc(s)}</span></li>`).join("")}</ul>
+    </div>
     <div class="offer-cover-contact">
       <span${ed}>${esc(t.ask)}</span>
       <strong${ed}>${esc([meta.manager || "Nikita Ungureanu", meta.managerRole || "Project Manager", meta.managerPhone || "—", meta.managerEmail || COMPANY_EMAIL].join(" · "))}</strong>
@@ -764,7 +754,6 @@
     <h3><span>⇄</span> ${esc(t.roles)}</h3>
     ${line(t.rUs, t.rUsVal + (modeKey === "netb" ? t.rUsProsumer : ""))}
     ${line(t.rClient, t.rClientVal)}
-    ${line(t.rNot, (hasPv && meta.mount !== "ground" ? t.rNotRoof : "") + t.rNotVal)}
   </section>`;
 
         // TVA одной фразой: «включают TVA 20%, кроме монтажа (scutit, art. 103)» — раньше две фразы противоречили друг другу
