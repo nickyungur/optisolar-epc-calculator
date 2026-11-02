@@ -486,11 +486,11 @@ body.no-scroll { overflow: hidden; }
 .offer-cover-tile { display: flex; flex-direction: column; gap: 1px; padding: 7px 12px 8px; border-radius: 6px; background: #f5f6f8; }
 .offer-cover-tile span { font-size: 9.5px; font-weight: 800; letter-spacing: .5px; text-transform: uppercase; color: #6b7280; }
 .offer-cover-tile strong { font-size: 15.5px; font-weight: 800; color: #1f2328; }
-.offer-cover-list ul { margin: 0; padding: 0; list-style: none; }
+.offer-cover-list { display: block; margin-bottom: 14px; }
+.offer-cover-list ul { display: grid; grid-template-columns: 1fr 1fr; column-gap: 24px; margin: 0; padding: 0; list-style: none; }
 .offer-cover-list li { display: flex; gap: 8px; padding: 3px 0; font-size: 12px; line-height: 1.3; }
 .offer-cover-list li b { flex: 0 0 12px; font-weight: 800; }
-.offer-cover-list.is-inc li b { color: #c98a00; }
-.offer-cover-list.is-not li { color: #6b7280; }
+.offer-cover-list li b { color: #c98a00; }
 .offer-cover-contact { display: flex; flex-direction: column; gap: 2px; margin-top: auto; padding: 10px 14px; border-radius: 8px; background: #f5f6f8; }
 .offer-cover-contact span { font-size: 9.5px; font-weight: 800; letter-spacing: .5px; text-transform: uppercase; color: #6b7280; }
 .offer-cover-contact strong { font-size: 13px; font-weight: 800; overflow-wrap: anywhere; }
@@ -499,6 +499,7 @@ body.no-scroll { overflow: hidden; }
 .offer-document:not(.offer-a4) .offer-cover { margin-bottom: 18px; }
 .offer-document:not(.offer-a4) .offer-cover-contact { margin-top: 4px; }
 .offer-narrow .offer-cover-grid { grid-template-columns: 1fr; gap: 16px; }
+.offer-narrow .offer-cover-list ul { grid-template-columns: 1fr; }
 .offer-narrow .offer-scheme { padding: 12px 8px 14px; }
 .offer-narrow .offer-scheme-arrow { flex-basis: 12px; margin-top: 14px; font-size: 14px; }
 .offer-narrow .offer-scheme-node strong { font-size: 12.5px; }
@@ -506,6 +507,7 @@ body.no-scroll { overflow: hidden; }
 .offer-narrow .offer-cover-total { font-size: 34px; }
 @media (max-width: 560px) {
     .offer-document:not(.offer-a4) .offer-cover-grid { grid-template-columns: 1fr; gap: 16px; }
+    .offer-document:not(.offer-a4) .offer-cover-list ul { grid-template-columns: 1fr; }
     .offer-document:not(.offer-a4) .offer-scheme { padding: 12px 8px 14px; }
     .offer-document:not(.offer-a4) .offer-scheme-arrow { flex-basis: 12px; margin-top: 14px; font-size: 14px; }
     .offer-document:not(.offer-a4) .offer-scheme-node strong { font-size: 12.5px; }
