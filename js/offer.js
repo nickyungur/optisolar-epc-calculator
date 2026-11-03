@@ -72,13 +72,13 @@
             mode: "Regim de funcționare",
             modes: { zero: "Zero Export (fără livrare în rețea)", netb: "Facturare netă (prosumator)", grid: "Livrare în rețea conform avizului de racordare" },
             goal: "Scopul stocării",
-            outage: "La întreruperea rețelei", outageVal: "consumatorii de pe circuitul de rezervă (se stabilesc la vizita tehnică); energie utilă ≈ {kwh} kWh",
+            outage: "La întreruperea rețelei", outageVal: "consumatorii de pe circuitul de rezervă (se stabilesc la vizita tehnică); acumulator {kwh} kWh",
             est: "ESTIMARE ANUALĂ", prod: "Producție estimată", prodVal: "≈ {kwh} kWh/an",
             cons: "Consum anual", save: "Economie estimată", saveVal: "≈ {sum} {cur}/an", payback: "Recuperarea investiției",
             estNote: "Calcul: {y} kWh/kWp pe an{tariff}. Estimare, nu reprezintă o garanție: producția reală depinde de orientare, umbrire și vreme.", estTariff: ", tarif {t} lei/kWh",
             estNoteNet: " Surplusul livrat în rețea — prin facturare netă, ≈ {credit} lei/kWh.",
-            bessTech: "SISTEMUL DE STOCARE — DATE TEHNICE", bInst: "Capacitate instalată", bUse: "Capacitate utilă (DoD {d}%)",
-            bPcs: "Putere de încărcare / descărcare", bDur: "Durată la putere nominală", bDurVal: "≈ {h} ore",
+            bessTech: "SISTEMUL DE STOCARE — DATE TEHNICE", bInst: "Capacitate instalată",
+            bPcs: "Putere de încărcare / descărcare",
             bChem: "Tehnologie", bChemVal: "litiu-fier-fosfat (LFP)",
             bNote: "Eficiența ciclului, numărul de cicluri, garanția capacității, răcirea și certificatele — conform fișei tehnice a producătorului{fin}.",
             bNoteFin: ", anexată la oferta finală",
@@ -104,14 +104,14 @@
                 grid: ["Rețea", "Livrare în rețea", "conform avizului de racordare"],
                 bess: ["Consum", "Consum propriu", ""]
             },
-            nLimit: "limita în rețea {x} kW", nUsable: "LFP · utilă ≈ {kwh} kWh", nVariants: "variante: {n} — vezi prețul",
+            nLimit: "limita în rețea {x} kW", nVariants: "variante: {n} — vezi prețul",
             cTotal: "Total cu TVA, la cheie", cTotalNoVat: "Total, la cheie", cWithVariant: " · centrala + varianta {n}", cVariant: " · varianta {n}",
             cNetVat: "{net} fără TVA · TVA {vat}", cEst: "Preț estimativ — se confirmă după vizita tehnică.", cFirm: "Preț ferm pe durata valabilității ofertei.",
             cPerKwp: "Preț pe 1 kWp{x}, {vat}", cPerKwh: "Preț pe 1 kWh, {vat}", cNet: "fără TVA", cGross: "cu TVA",
             cNote: "Plata — conform contractului. Livrare — până la 30 de zile, montaj și punere în funcțiune — până la 30 de zile de la livrare. Detaliat — pe paginile următoare.",
             cParts: "Lucrările comune (proiectare, transport, darea în exploatare) sunt incluse în fiecare componentă; la realizarea împreună se optimizează în oferta finală.",
             rTitle: "Rezultatul estimat pe an", rStoreTitle: "Sistemul de stocare", rProd: "Producție", rSave: "Economie", rPay: "Recuperarea investiției",
-            rOut: "La pană de curent", rOutVal: "≈ {kwh} kWh utili", rStore: "Stocare utilă",
+            rOut: "La pană de curent", rOutVal: "acumulator {kwh} kWh",
             incTitle: "Inclus în preț",
             inc: ["Echipamente noi, cu garanția producătorului", "Proiect de execuție și autorizații", "Montaj, punere în funcțiune și admitere în exploatare"],
             incGrid: "Dosarul la operatorul de rețea", incProsumer: " și contractul de prosumator",
@@ -165,13 +165,13 @@
             mode: "Режим работы",
             modes: { zero: "Zero Export (без выдачи в сеть)", netb: "Facturare netă (просюмер)", grid: "Выдача в сеть по авизу на подключение" },
             goal: "Цель накопителя",
-            outage: "При отключении сети", outageVal: "потребители резервной линии (определяются на выезде); полезная энергия ≈ {kwh} кВт·ч",
+            outage: "При отключении сети", outageVal: "потребители резервной линии (определяются на выезде); аккумулятор {kwh} кВт·ч",
             est: "ОЦЕНКА НА ГОД", prod: "Ориентировочная выработка", prodVal: "≈ {kwh} кВт·ч/год",
             cons: "Годовое потребление", save: "Экономия (оценка)", saveVal: "≈ {sum} {cur}/год", payback: "Окупаемость",
             estNote: "Расчёт: {y} кВт·ч/кВтп в год{tariff}. Оценка, а не гарантия: реальная выработка зависит от ориентации, тени и погоды.", estTariff: ", тариф {t} лей/кВт·ч",
             estNoteNet: " Излишки в сеть — по facturare netă, ≈ {credit} лей/кВт·ч.",
-            bessTech: "НАКОПИТЕЛЬ — ТЕХНИЧЕСКИЕ ДАННЫЕ", bInst: "Установленная ёмкость", bUse: "Полезная ёмкость (DoD {d}%)",
-            bPcs: "Мощность заряда / разряда", bDur: "Время работы на номинальной мощности", bDurVal: "≈ {h} ч",
+            bessTech: "НАКОПИТЕЛЬ — ТЕХНИЧЕСКИЕ ДАННЫЕ", bInst: "Установленная ёмкость",
+            bPcs: "Мощность заряда / разряда",
             bChem: "Технология", bChemVal: "литий-железо-фосфат (LFP)",
             bNote: "КПД цикла, число циклов, гарантия ёмкости, охлаждение и сертификаты — по техпаспорту производителя{fin}.",
             bNoteFin: ", он прилагается к финальному предложению",
@@ -196,14 +196,14 @@
                 grid: ["Сеть", "Выдача в сеть", "по авизу на подключение"],
                 bess: ["Потребление", "Своё потребление", ""]
             },
-            nLimit: "лимит выдачи {x} кВт", nUsable: "LFP · полезная ≈ {kwh} кВт·ч", nVariants: "вариантов: {n} — см. цену",
+            nLimit: "лимит выдачи {x} кВт", nVariants: "вариантов: {n} — см. цену",
             cTotal: "Итого с TVA, под ключ", cTotalNoVat: "Итого, под ключ", cWithVariant: " · СЭС + вариант {n}", cVariant: " · вариант {n}",
             cNetVat: "{net} без TVA · TVA {vat}", cEst: "Цена ориентировочная — уточним после выезда на объект.", cFirm: "Цена твёрдая на срок действия предложения.",
             cPerKwp: "Цена за 1 кВтп{x}, {vat}", cPerKwh: "Цена за 1 кВт·ч, {vat}", cNet: "без TVA", cGross: "с TVA",
             cNote: "Оплата — по договору. Поставка — до 30 дней, монтаж и пуск — до 30 дней после поставки. Подробно — на следующих страницах.",
             cParts: "Общие работы (проект, транспорт, сдача в эксплуатацию) входят в каждую часть; если строим вместе, они уменьшатся в финальном предложении.",
             rTitle: "Оценка на год", rStoreTitle: "Накопитель", rProd: "Выработка", rSave: "Экономия", rPay: "Окупаемость",
-            rOut: "При отключении сети", rOutVal: "≈ {kwh} кВт·ч полезной энергии", rStore: "Полезная ёмкость",
+            rOut: "При отключении сети", rOutVal: "аккумулятор {kwh} кВт·ч",
             incTitle: "Входит в цену",
             inc: ["Новое оборудование с гарантией производителя", "Рабочий проект и разрешения", "Монтаж, пуск и допуск в эксплуатацию"],
             incGrid: "Документы у оператора сети", incProsumer: " и договор просюмера",
@@ -392,11 +392,12 @@
             nodes.push(node("grid", t.nSrc, t.nSrcVal, t.nSrcNote));
         }
         const b0 = bess[0];
-        const usable = b0 ? Number(b0.info.usableKwh) || 0 : 0;
+        // ёмкость в оффере — только паспортная (установленная): полезная (DoD) и время на номинале вызывают вопросы клиента (2026-11-03)
+        const bKwh = b0 ? Number(b0.info.bessKwh) || 0 : 0;
         if (b0) {
             const note = bess.length > 1 ? t.nVariants.replace("{n}", bess.length)
                 : b0.info.segment === "home" ? models(live(b0), "bat") || (final ? "LiFePO4" : t.noModel)
-                : usable > 0 ? t.nUsable.replace("{kwh}", qtyFmt(usable)) : "LFP";
+                : "LFP";
             nodes.push(node("bat", b0.info.segment === "home" ? t.nBat : t.nBess, bessSize(b0.info), note));
         }
         const end = t.nEnd[modeKey || "bess"];
@@ -450,11 +451,10 @@
             if (est.cons) tiles.push(tile(t.rSave, t.saveVal.replace("{sum}", qtyFmt(Math.round(est.savings / k / 10) * 10)).replace("{cur}", cur)));
             if (est.payback) tiles.push(tile(t.rPay, "≈ " + yearsFmt(est.payback, lang)));
         }
-        const hours = b0 && b0.info.bessKw > 0 ? qtyFmt(Math.round(b0.info.bessKwh / b0.info.bessKw * 10) / 10) : "";
-        if (b0 && usable > 0) {
-            if (b0.info.segment === "home") tiles.push(tile(t.rOut, t.rOutVal.replace("{kwh}", qtyFmt(usable))));
-            else if (est || !hours) tiles.push(tile(t.rStore, `≈ ${qtyFmt(usable)} kWh`));
-            else tiles.push(tile(t.rStore, `≈ ${qtyFmt(usable)} kWh`), tile(t.bPcs, `${qtyFmt(b0.info.bessKw)} kW`), tile(t.bDur, t.bDurVal.replace("{h}", hours)));
+        if (b0 && bKwh > 0) {
+            if (b0.info.segment === "home") tiles.push(tile(t.rOut, t.rOutVal.replace("{kwh}", qtyFmt(bKwh))));
+            else if (est || !(b0.info.bessKw > 0)) tiles.push(tile(t.bInst, `${qtyFmt(bKwh)} kWh`));
+            else tiles.push(tile(t.bInst, `${qtyFmt(bKwh)} kWh`), tile(t.bPcs, `${qtyFmt(b0.info.bessKw)} kW`));
         }
         const num1 = v => String(v).replace(".", ",");
         const resNote = est
@@ -714,7 +714,6 @@
         const modeKey = stationMode(info, meta);
         const mode = modeKey ? t.modes[modeKey] : "";
         const goal = hasBat && meta.goal ? (GOALS[lang][meta.goal] || "") : "";
-        const usable = Number(info.usableKwh) || 0;
         const est = estimate(info, result, meta);
         const num1 = x => String(x).replace(".", ",");
         const estCard = !est ? "" : `
@@ -730,9 +729,7 @@
     <section class="offer-info-card offer-bess-card">
       <h3><span>▥</span> ${esc(t.bessTech)}</h3>
       ${line(t.bInst, `${qtyFmt(info.bessKwh)} kWh`)}
-      ${usable > 0 ? line(t.bUse.replace("{d}", Math.round(usable / info.bessKwh * 100)), `≈ ${qtyFmt(usable)} kWh`) : ""}
       ${info.bessKw > 0 ? line(t.bPcs, `${qtyFmt(info.bessKw)} kW`) : ""}
-      ${info.bessKw > 0 ? line(t.bDur, t.bDurVal.replace("{h}", qtyFmt(Math.round(info.bessKwh / info.bessKw * 10) / 10))) : ""}
       ${line(t.bChem, t.bChemVal)}
       ${goal ? line(t.goal, goal) : ""}
       <p class="offer-card-note"${ed}>${esc(t.bNote.replace("{fin}", final ? "" : t.bNoteFin))}</p>
@@ -802,7 +799,7 @@
       ${mode ? line(t.mode, mode) : ""}
       ${meta.exportLimitKw > 0 && info.bessKw > 0 && info.product !== "pv" ? line(t.exportLimit, `${qtyFmt(meta.exportLimitKw)} kW · PCS ${qtyFmt(info.bessKw)} kW`) : ""}
       ${goal && info.segment === "home" ? line(t.goal, goal) : ""}
-      ${hasBat && info.segment === "home" && usable > 0 ? line(t.outage, t.outageVal.replace("{kwh}", qtyFmt(usable))) : ""}
+      ${hasBat && info.segment === "home" && info.bessKwh > 0 ? line(t.outage, t.outageVal.replace("{kwh}", qtyFmt(info.bessKwh))) : ""}
       ${roofType ? line(t.roofType, roofType) : ""}
       ${roofMaterial ? line(t.roofMaterial, roofMaterial) : ""}
     </section>${sideCards}
