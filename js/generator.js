@@ -497,8 +497,10 @@
                     nameRu: `Шкаф BESS ${N.cabinetKw} кВт / ${N.cabinetKwh} кВт·ч`
                 });
                 add("ems_ci", 1);
-                info.bessKwhInstalled = units * N.cabinetKwh;
-                info.bessKwInstalled = units * N.cabinetKw;
+                // расчёт от Claude — шкафы из прайса своей строкой (LUNA2000-241, PowerHill 125/261): ёмкость и мощность как введены,
+                // а не шкафы нормы 100 кВт / 215 кВт·ч (было «200 kW / 430 kWh» вместо 108 / 241, MOLINART 2026-11-03)
+                info.bessKwhInstalled = input.manual ? bessKwh : units * N.cabinetKwh;
+                info.bessKwInstalled = input.manual ? bessKw : units * N.cabinetKw;
             } else if (topology === "container") {
                 containers = Math.ceil(bessKwh / N.containerKwh - 1e-9);
                 const kwhInst = Math.ceil(bessKwh / 100 - 1e-9) * 100;
