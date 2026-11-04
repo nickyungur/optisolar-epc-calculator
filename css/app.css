@@ -519,6 +519,20 @@ body.no-scroll { overflow: hidden; }
     .offer-document:not(.offer-a4) .offer-cover-total { font-size: 34px; }
 }
 @media print { .offer-cover { break-after: page; } }
+/* Лист окупаемости бизнеса (2026-11-04, по слайду JLC «Impact și eficiență economică»): 2-я страница A4 — ровно лист.
+   Лист 2 после обложки: 1 123 px высоты A4 минус поле 10 мм сверху ≈ 1 085 px; запас на округление */
+.offer-payback { margin: 0 0 18px; }
+.offer-payback-end.offer-info-line { height: 0; margin: 0; padding: 0; border: 0; }
+.offer-a4 .offer-payback { min-height: 1078px; margin: 0; display: flex; flex-direction: column; }
+.offer-a4 .offer-payback-end.offer-info-line { margin-top: auto; } /* точка разреза — внизу листа, а не под содержимым */
+.offer-document .offer-payback h2 { margin: 6px 0 0; font-size: 26px; line-height: 1.15; font-weight: 800; color: #1f2328; }
+.offer-payback-tiles { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin: 22px 0 24px; }
+.offer-payback-tile { padding: 18px 20px; border: 1px solid #e3e6ea; border-radius: 14px; background: #f6f7f9; box-shadow: 0 2px 5px rgba(0, 0, 0, .07); }
+.offer-payback-tile span { display: block; font-size: 10px; font-weight: 800; letter-spacing: .5px; text-transform: uppercase; color: #d99a00; }
+.offer-payback-tile strong { display: block; margin-top: 10px; font-size: 24px; line-height: 1.15; font-weight: 800; color: #1f2328; }
+.offer-narrow .offer-payback-tiles { grid-template-columns: 1fr; }
+@media (max-width: 560px) { .offer-document:not(.offer-a4) .offer-payback-tiles { grid-template-columns: 1fr; } }
+@media print { .offer-payback { break-after: page; } }
 /* итог блока A / B — строкой; жёлтый — только у общего итога */
 .offer-summary-wrap.offer-block-total { flex-wrap: wrap; align-items: baseline; gap: 4px 18px; margin: 0 0 18px; padding: 8px 12px; background: #f5f6f8; font-size: 11.5px; color: #59616d; }
 .offer-block-total > span:first-child { margin-right: auto; font-weight: 800; color: #1f2328; }
