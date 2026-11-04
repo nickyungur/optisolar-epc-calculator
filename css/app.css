@@ -303,6 +303,10 @@ body.no-scroll { overflow: hidden; }
 .offer-pricing-table th.c-name { text-align: left; min-width: 120px; }
 .offer-pricing-table td { padding: 8px 6px; border-bottom: 1px solid #e6e8eb; text-align: right; white-space: nowrap; }
 .offer-pricing-table td.c-n, .offer-pricing-table td.c-qty, .offer-pricing-table td.c-unit, .offer-pricing-table td.c-vatp { text-align: center; }
+/* × у строки оффера на экране (2026-11-04): убрать позиции из расчёта; в PDF и печать не идёт */
+.offer-row-del { display: block; margin: 4px auto 0; width: 22px; height: 22px; padding: 0; border: 1px solid #e3b4b4; border-radius: 50%; background: #fff; color: #c62828; font: 700 14px/1 -apple-system, Arial, sans-serif; cursor: pointer; }
+@media (pointer: coarse) { .offer-row-del { width: 28px; height: 28px; font-size: 16px; } }
+@media print { .offer-row-del { display: none !important; } }
 .offer-pricing-table td.offer-description-cell { text-align: left; white-space: normal; min-width: 125px; font-weight: 600; }
 .offer-summary-wrap { display: flex; justify-content: flex-end; margin: 14px 0 16px; }
 .offer-summary { width: min(420px, 100%); border: 1px solid #d9dde2; border-radius: 8px; overflow: hidden; background: rgba(255, 255, 255, .92); }
