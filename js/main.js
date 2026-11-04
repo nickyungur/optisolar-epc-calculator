@@ -1317,11 +1317,35 @@
             return { st, info: st.info, result: st.result, variant: isBessSheet(x.sheet) && bessCount > 1 ? ++b : 0 };
         });
         $("offerDoc").innerHTML = parts.map((p, i) => OFFER.render(p.st, offerOpts({
-            editable: true, number: numberOf(i), now: isoDate(no.date), variant: p.variant,
+            editable: true, sheet: list[i].sheet, number: numberOf(i), now: isoDate(no.date), variant: p.variant,
             cover: i === 0 ? parts : null,
             references: i === list.length - 1 ? chosenReferences() : []
         }))).join("");
     }
+
+    // × у строки оффера (2026-11-04): убирает её позиции из расчёта — как × в шаге ③. Правка хранится
+    // в проекте и при пересчёте не возвращается; у групповой строки («Lucrări de montaj») — все её позиции.
+    $("offerDoc").addEventListener("click", e => {
+        const btn = e.target.closest(".offer-row-del");
+        if (!btn || !last) return;
+        e.preventDefault();
+        const sheet = btn.dataset.sheet || "main";
+        const sh = (last.sheets || [last]).find(x => x.sheet === sheet) || last;
+        let keys = [];
+        try { keys = JSON.parse(btn.dataset.del || "[]"); } catch (_) { return; }
+        const its = keys.map(k => sh.items.find(i => k.startsWith("x:") ? i.extraId === k.slice(2) : i._key === k.slice(2)))
+            .filter(Boolean);
+        if (!its.length) return;
+        const names = its.slice(0, 6).map(i => "· " + (i.nameRu || i.name)).join("\n") + (its.length > 6 ? "\n· …" : "");
+        const n = its.length, few = n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 12 || n % 100 > 14);
+        if (!confirm(`Убрать из расчёта ${n > 1 ? n + (few ? " позиции" : " позиций") : "позицию"}?\n${names}\nИтог пересчитается.`)) return;
+        const st = store(sheet);
+        its.forEach(it => {
+            if (it.extraId) st.extra = (st.extra || []).filter(y => y.extraId !== it.extraId);
+            else { st.edits = st.edits || {}; st.edits[it._key] = { ...(st.edits[it._key] || {}), removed: true }; }
+        });
+        recalc();
+    });
 
     // ---------- номер оффера (ревизия 2026-10-29: номер и дата менялись при каждом открытии) ----------
     // OP-ГГГГММДД-L-0042-v1 (без ID лида — время вместо него). Черновик считается от сегодняшнего дня;
@@ -1394,6 +1418,7 @@
         return Array.from($("offerDoc").querySelectorAll(".offer-document")).map(el => {
             const doc = el.cloneNode(true);
             doc.querySelectorAll("[contenteditable]").forEach(x => x.removeAttribute("contenteditable"));
+            doc.querySelectorAll(".offer-row-del").forEach(x => x.remove());
             doc.classList.add(format === "a4" ? "offer-a4" : "offer-narrow");
             return doc;
         });
@@ -1510,6 +1535,7 @@
         const offers = Array.from($("offerDoc").querySelectorAll(".offer-document")).map(doc => {
             const offer = doc.cloneNode(true);
             offer.querySelectorAll("img").forEach(img => img.removeAttribute("src")); // логотип есть и в браузере
+            offer.querySelectorAll(".offer-row-del").forEach(x => x.remove());
             return offer.outerHTML;
         });
         const job = SYNC.pack(JSON.stringify({ v: 1, state, rb: rbOverrides, base: rbBase, fx: fxBnm, offer: offers[0] || "", offers }));

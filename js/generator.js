@@ -525,11 +525,12 @@
             if (meter && eqNet(meter) > 0) addEq(meter, 1);
             else add("zero_export_kit", 1);
         }
+        // SmartLogger — опция по запросу (решение пользователя 2026-11-04): сам не ставится,
+        // добавляется через «+ Позиция» (модели Huawei). Один сетевой инвертор — SmartDongle, как раньше.
         if (seg === "biz" && huaweiInv.length) {
             const invUnits = huaweiInv.reduce((s, x) => s + x.n, 0);
-            const logger = eqGet("hw-logger"), dongle = eqGet("hw-dongle");
-            if (invUnits >= 2 && logger && eqNet(logger) > 0) addEq(logger, 1);
-            else if (invUnits === 1 && huaweiInv[0].e.fam === "grid" && dongle && eqNet(dongle) > 0) addEq(dongle, 1);
+            const dongle = eqGet("hw-dongle");
+            if (invUnits === 1 && huaweiInv[0].e.fam === "grid" && dongle && eqNet(dongle) > 0) addEq(dongle, 1);
         }
 
         // метеостанция наземного парка на СН (волна 3)

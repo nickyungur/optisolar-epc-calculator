@@ -572,14 +572,22 @@
 
         // Таблица: оборудование построчно, остальное группами; под названием — детали (марка, гарантия, состав группы)
         let nr = 0;
-        const row = (name, qty, unit, price, net, vatLbl, vat, gross, spec) => {
+        // × у строки на экране (2026-11-04): убирает её позиции из расчёта, как × в шаге ③; в PDF и печать не идёт
+        const ref = i => i.extraId ? "x:" + i.extraId : i._key ? "k:" + i._key : "";
+        const delBtn = its => {
+            const keys = its.map(ref);
+            if (!opts.editable || !keys.length || keys.some(k => !k)) return "";
+            // ключи — JSON: в ключе генератора уже есть «|» (ставка|название)
+            return `<button type="button" class="offer-row-del" data-del="${esc(JSON.stringify(keys))}" data-sheet="${esc(opts.sheet || "main")}" title="Убрать строку из расчёта" aria-label="Убрать строку из расчёта">×</button>`;
+        };
+        const row = (name, qty, unit, price, net, vatLbl, vat, gross, spec, its) => {
             nr += 1;
             const cells = [
-                ["c-n", esc(nr)], ["c-name offer-description-cell", esc(name) + (spec ? `<small class="offer-item-spec">${esc(spec)}</small>` : "")],
+                ["c-name offer-description-cell", esc(name) + (spec ? `<small class="offer-item-spec">${esc(spec)}</small>` : "")],
                 ["c-qty", esc(qty)], ["c-unit", esc(unit)], ["c-price", esc(price)],
                 ["c-net", esc(net)], ["c-vatp", esc(vatLbl)], ["c-vat", esc(vat)], ["c-total", esc(gross)]
             ];
-            return `<tr>${cells.map(([cls, v]) => `<td${edc(cls)}>${v}</td>`).join("")}</tr>`;
+            return `<tr><td class="c-n">${esc(nr)}${delBtn(its || [])}</td>${cells.map(([cls, v]) => `<td${edc(cls)}>${v}</td>`).join("")}</tr>`;
         };
         // работы станции без TVA — «scutit» (решение 6), остальные ставки — процентом
         const vatLbl = (pct, exempt) => exempt && vatOn ? t.scutit : `${qtyFmt(pct)}%`;
@@ -603,7 +611,7 @@
         const tableBody = its => {
             let html = its.filter(i => i.category === "main-equipment").map(i => row(
                 nm(i), qtyFmt(i.quantity), unitLabel(i.unit || "buc", lang),
-                m(i.sell), m(i.totalSell), vatLbl(i.vatPct || 0, false), m(i.vatAmount), m(i.totalWithVat), itemSpec(i)
+                m(i.sell), m(i.totalSell), vatLbl(i.vatPct || 0, false), m(i.vatAmount), m(i.totalWithVat), itemSpec(i), [i]
             )).join("");
             // группа делится по TVA: работы станции (scutit) — отдельной строкой от облагаемых 20%
             // (ст. 103 п. 30: стройка и монтаж СЭС — scutit, накопитель, услуги и товар — 20%; 2026-10-30)
@@ -614,7 +622,7 @@
                 [gi.filter(free), gi.filter(i => !free(i))].forEach((part, k) => {
                     if (!part.length) return;
                     const net = sum(part, "totalSell"), vat = sum(part, "vatAmount"), gross = sum(part, "totalWithVat");
-                    html += row(g[lang], "—", unitLabel("lot", lang), "—", m(net), vatLbl(net ? vat / net * 100 : 0, k === 0), m(vat), m(gross), groupSpec(part));
+                    html += row(g[lang], "—", unitLabel("lot", lang), "—", m(net), vatLbl(net ? vat / net * 100 : 0, k === 0), m(vat), m(gross), groupSpec(part), part);
                 });
             });
             return html;
