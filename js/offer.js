@@ -77,6 +77,7 @@
             cons: "Consum anual", save: "Economie estimată", saveVal: "≈ {sum} {cur}/an", payback: "Recuperarea investiției",
             estNote: "Calcul: {y} kWh/kWp pe an{tariff}. Estimare, nu reprezintă o garanție: producția reală depinde de orientare, umbrire și vreme.", estTariff: ", tarif {t} lei/kWh",
             estNoteNet: " Surplusul livrat în rețea — prin facturare netă, ≈ {credit} lei/kWh.",
+            estOwn: " Toată energia produsă se consumă pe loc.",
             bessTech: "SISTEMUL DE STOCARE — DATE TEHNICE", bInst: "Capacitate instalată",
             bPcs: "Putere de încărcare / descărcare",
             bChem: "Tehnologie", bChemVal: "litiu-fier-fosfat (LFP)",
@@ -111,6 +112,15 @@
             cNote: "Plata — conform contractului. Livrare — până la 30 de zile, montaj și punere în funcțiune — până la 30 de zile de la livrare. Detaliat — pe paginile următoare.",
             cParts: "Lucrările comune (proiectare, transport, darea în exploatare) sunt incluse în fiecare componentă; la realizarea împreună se optimizează în oferta finală.",
             rTitle: "Rezultatul estimat pe an", rStoreTitle: "Sistemul de stocare", rProd: "Producție", rSave: "Economie", rPay: "Recuperarea investiției",
+            // лист окупаемости бизнеса (2026-11-04, по слайду «Impact și eficiență economică» презентации JLC)
+            pbKicker: "INDICATORI DE DECIZIE", pbTitle: "Impact și eficiență economică",
+            pbInv: "Investiție estimată", pbInvVal: "{sum} fără TVA", pbSave: "Economie anuală", pbSaveVal: "≈ {sum}/an",
+            pbPay: "Perioadă de recuperare", pbCo2: "Reducere CO₂", pbCo2Val: "≈ {t} t/an",
+            pbProd: "Indicatori de producție", pbAnnual: "Producție anuală", pbSpec: "Producție specifică", pbSpecVal: "{y} kWh/kWp/an",
+            pbMonth: "Producție medie lunară", pbTariff: "Tarif energie electrică", pbTariffVal: "{t} lei/kWh",
+            pbUse: "Energie consumată pe loc", pbUseOwn: "toată energia produsă", pbUseCons: "≈ {p}% din consum ({c} kWh/an)",
+            pbNote: "Estimare prudentă: {y} kWh/kWp pe an — producția reală depinde de orientare, umbrire și vreme. Economia — la tariful indicat; recuperarea investiției — din prețul fără TVA. Calculul nu reprezintă o garanție.",
+            eYear: "an", eMonth: "lună", eKwh: "kWh", eMwh: "MWh",
             rOut: "La pană de curent", rOutVal: "acumulator {kwh} kWh",
             incTitle: "Inclus în preț",
             inc: ["Echipamente noi, cu garanția producătorului", "Proiect de execuție și autorizații", "Montaj, punere în funcțiune și admitere în exploatare"],
@@ -170,6 +180,7 @@
             cons: "Годовое потребление", save: "Экономия (оценка)", saveVal: "≈ {sum} {cur}/год", payback: "Окупаемость",
             estNote: "Расчёт: {y} кВт·ч/кВтп в год{tariff}. Оценка, а не гарантия: реальная выработка зависит от ориентации, тени и погоды.", estTariff: ", тариф {t} лей/кВт·ч",
             estNoteNet: " Излишки в сеть — по facturare netă, ≈ {credit} лей/кВт·ч.",
+            estOwn: " Вся выработка — на собственное потребление.",
             bessTech: "НАКОПИТЕЛЬ — ТЕХНИЧЕСКИЕ ДАННЫЕ", bInst: "Установленная ёмкость",
             bPcs: "Мощность заряда / разряда",
             bChem: "Технология", bChemVal: "литий-железо-фосфат (LFP)",
@@ -203,6 +214,14 @@
             cNote: "Оплата — по договору. Поставка — до 30 дней, монтаж и пуск — до 30 дней после поставки. Подробно — на следующих страницах.",
             cParts: "Общие работы (проект, транспорт, сдача в эксплуатацию) входят в каждую часть; если строим вместе, они уменьшатся в финальном предложении.",
             rTitle: "Оценка на год", rStoreTitle: "Накопитель", rProd: "Выработка", rSave: "Экономия", rPay: "Окупаемость",
+            pbKicker: "ПОКАЗАТЕЛИ ДЛЯ РЕШЕНИЯ", pbTitle: "Экономический эффект",
+            pbInv: "Инвестиция (оценка)", pbInvVal: "{sum} без TVA", pbSave: "Экономия в год", pbSaveVal: "≈ {sum}/год",
+            pbPay: "Срок окупаемости", pbCo2: "Снижение CO₂", pbCo2Val: "≈ {t} т/год",
+            pbProd: "Показатели выработки", pbAnnual: "Выработка в год", pbSpec: "Удельная выработка", pbSpecVal: "{y} кВт·ч/кВтп в год",
+            pbMonth: "Средняя выработка в месяц", pbTariff: "Тариф на электроэнергию", pbTariffVal: "{t} лей/кВт·ч",
+            pbUse: "Потребляется на месте", pbUseOwn: "вся выработка", pbUseCons: "≈ {p}% потребления ({c} кВт·ч/год)",
+            pbNote: "Осторожная оценка: {y} кВт·ч/кВтп в год — реальная выработка зависит от ориентации, тени и погоды. Экономия — по указанному тарифу, окупаемость — от цены без TVA. Расчёт не является гарантией.",
+            eYear: "год", eMonth: "мес.", eKwh: "кВт·ч", eMwh: "МВт·ч",
             rOut: "При отключении сети", rOutVal: "аккумулятор {kwh} кВт·ч",
             incTitle: "Входит в цену",
             inc: ["Новое оборудование с гарантией производителя", "Рабочий проект и разрешения", "Монтаж, пуск и допуск в эксплуатацию"],
@@ -319,14 +338,21 @@
     // прямое потребление по тарифу, излишки по кредиту facturare netă (до 200 кВт, не Zero Export),
     // не больше годового счёта. Окупаемость: дом — от цены с TVA, бизнес — без TVA.
     // Тариф: Premier Energy 3,56 лей/кВт·ч (ANRE, Moldpres 31.03.2026); кредит — среднее Premier за январь–август 2026.
-    const EST = { tariff: 3.56, credit: 2.68, shareNoBat: 35, shareBat: 70, netLimitKw: 200 };
+    // co2 — кг CO₂ на кВт·ч из сети, как в презентации OptiSolar для JLC (449 МВт·ч → 139 т/год)
+    const EST = { tariff: 3.56, credit: 2.68, shareNoBat: 35, shareBat: 70, netLimitKw: 200, co2: 0.31 };
     function estimate(info, result, meta = {}) {
         const annual = Number(info.pvAnnualKwh) || 0;
         if (!(info.pvKwp > 0) || !(annual > 0) || info.product === "bess") return null;
         const out = { annual, perKwp: Math.round(annual / info.pvKwp) };
         const cons = (Number(meta.consumptionKwh) || 0) * 12;
-        if (!(cons > 0)) return out;
         const tariff = Number(meta.tariff) > 0 ? Number(meta.tariff) : EST.tariff;
+        if (!(cons > 0)) {
+            // бизнес без введённого потребления — вся выработка на собственные нужды по тарифу,
+            // окупаемость от цены без TVA (решение пользователя 2026-11-04, как в презентации JLC); дому — только выработка
+            if (info.segment === "home") return out;
+            const savings = annual * tariff;
+            return { ...out, tariff, own: true, savings, payback: savings > 0 ? Math.round(result.commercialPrice / savings * 2) / 2 : 0 };
+        }
         const share = (Number(meta.selfShare) > 0 ? Math.min(100, Number(meta.selfShare)) : (info.bessKwh > 0 && info.product !== "pv" ? EST.shareBat : EST.shareNoBat)) / 100;
         const acKw = Number(info.inverterKw) || info.pvKwp;
         const netb = !meta.zeroExport && acKw <= EST.netLimitKw;
@@ -448,7 +474,7 @@
         const tiles = [];
         if (est) {
             tiles.push(tile(t.rProd, t.prodVal.replace("{kwh}", qtyFmt(Math.round(est.annual / 100) * 100))));
-            if (est.cons) tiles.push(tile(t.rSave, t.saveVal.replace("{sum}", qtyFmt(Math.round(est.savings / k / 10) * 10)).replace("{cur}", cur)));
+            if (est.savings) tiles.push(tile(t.rSave, t.saveVal.replace("{sum}", qtyFmt(Math.round(est.savings / k / 10) * 10)).replace("{cur}", cur)));
             if (est.payback) tiles.push(tile(t.rPay, "≈ " + yearsFmt(est.payback, lang)));
         }
         if (b0 && bKwh > 0) {
@@ -458,7 +484,7 @@
         }
         const num1 = v => String(v).replace(".", ",");
         const resNote = est
-            ? t.estNote.replace("{y}", qtyFmt(est.perKwp)).replace("{tariff}", est.cons ? t.estTariff.replace("{t}", num1(est.tariff)) : "") + (est.cons && est.netb ? t.estNoteNet.replace("{credit}", num1(EST.credit)) : "")
+            ? t.estNote.replace("{y}", qtyFmt(est.perKwp)).replace("{tariff}", est.savings ? t.estTariff.replace("{t}", num1(est.tariff)) : "") + (est.own ? t.estOwn : "") + (est.cons && est.netb ? t.estNoteNet.replace("{credit}", num1(EST.credit)) : "")
             : t.bNote.replace("{fin}", final ? "" : t.bNoteFin);
         const results = !tiles.length ? "" : `
       <div class="offer-cover-result">
@@ -729,9 +755,9 @@
       <h3><span>☀</span> ${esc(t.est)}</h3>
       ${line(t.prod, t.prodVal.replace("{kwh}", qtyFmt(Math.round(est.annual / 100) * 100)))}
       ${est.cons ? line(t.cons, `${qtyFmt(Math.round(est.cons))} ${lang === "ru" ? "кВт·ч" : "kWh"}`) : ""}
-      ${est.cons ? line(t.save, t.saveVal.replace("{sum}", qtyFmt(Math.round(est.savings / k / 10) * 10)).replace("{cur}", cur)) : ""}
+      ${est.savings ? line(t.save, t.saveVal.replace("{sum}", qtyFmt(Math.round(est.savings / k / 10) * 10)).replace("{cur}", cur)) : ""}
       ${est.payback ? line(t.payback, "≈ " + yearsFmt(est.payback, lang)) : ""}
-      <p class="offer-card-note"${ed}>${esc(t.estNote.replace("{y}", qtyFmt(est.perKwp)).replace("{tariff}", est.cons ? t.estTariff.replace("{t}", num1(est.tariff)) : "") + (est.cons && est.netb ? t.estNoteNet.replace("{credit}", num1(EST.credit)) : ""))}</p>
+      <p class="offer-card-note"${ed}>${esc(t.estNote.replace("{y}", qtyFmt(est.perKwp)).replace("{tariff}", est.savings ? t.estTariff.replace("{t}", num1(est.tariff)) : "") + (est.own ? t.estOwn : "") + (est.cons && est.netb ? t.estNoteNet.replace("{credit}", num1(EST.credit)) : ""))}</p>
     </section>`;
         const bessCard = !(hasBat && info.segment !== "home") ? "" : `
     <section class="offer-info-card offer-bess-card">
@@ -794,9 +820,40 @@
             })
             : headHtml(t, ed, logo) + title + metaHtml(t, edc, number, now, valid, days);
 
+        // Лист окупаемости (2026-11-04, по слайду «Impact și eficiență economică» презентации JLC): бизнес с СЭС,
+        // отдельная страница сразу за обложкой; на A4 — ровно лист, конец листа — точка разреза offer-info-line
+        const energy = (kwh, per) => kwh >= 100000
+            ? `${qtyFmt(Math.round(kwh / 100) / 10)} ${t.eMwh}/${per}` : `${qtyFmt(Math.round(kwh / 10) * 10)} ${t.eKwh}/${per}`;
+        const money0 = v => `${qtyFmt(Math.round(v / k))} ${cur}`;
+        const co2 = est ? est.annual * EST.co2 / 1000 : 0;
+        const pbTile = (label, value) => `<div class="offer-payback-tile"><span${ed}>${esc(label)}</span><strong${ed}>${esc(value)}</strong></div>`;
+        const paybackPage = !(cover && info.segment === "biz" && est && est.payback > 0) ? "" : `
+  <section class="offer-payback">
+    <div class="offer-kicker"${ed}>${esc(t.pbKicker)}</div>
+    <h2${ed}>${esc(t.pbTitle)}</h2>
+    <div class="offer-yellow-rule"></div>
+    <div class="offer-payback-tiles">
+      ${pbTile(t.pbInv, t.pbInvVal.replace("{sum}", money0(result.commercialPrice)))}
+      ${pbTile(t.pbSave, t.pbSaveVal.replace("{sum}", money0(Math.round(est.savings / 10) * 10)))}
+      ${pbTile(t.pbPay, "≈ " + yearsFmt(est.payback, lang))}
+      ${pbTile(t.pbCo2, t.pbCo2Val.replace("{t}", qtyFmt(co2 >= 10 ? Math.round(co2) : Math.round(co2 * 10) / 10)))}
+    </div>
+    <section class="offer-info-card">
+      <h3><span>☀</span> ${esc(t.pbProd)}</h3>
+      ${line(t.pbAnnual, energy(est.annual, t.eYear))}
+      ${line(t.pbSpec, t.pbSpecVal.replace("{y}", qtyFmt(est.perKwp)))}
+      ${line(t.pbMonth, energy(est.annual / 12, t.eMonth))}
+      ${line(t.pbUse, est.own ? t.pbUseOwn : t.pbUseCons.replace("{p}", Math.round(est.share * 100)).replace("{c}", qtyFmt(Math.round(est.cons))))}
+      ${line(t.pbTariff, t.pbTariffVal.replace("{t}", num1(est.tariff)))}
+      <p class="offer-card-note"${ed}>${esc(t.pbNote.replace("{y}", qtyFmt(est.perKwp)) + (est.cons && est.netb ? t.estNoteNet.replace("{credit}", num1(EST.credit)) : ""))}</p>
+    </section>
+    <div class="offer-payback-end offer-info-line"></div>
+  </section>`;
+
         return `
 <article class="offer-document" lang="${lang}">
   ${top}
+  ${paybackPage}
   <div class="offer-info-grid${sideCards ? " two" : ""}">
     <section class="offer-info-card">
       <h3><span>▦</span> ${esc(t.client)}</h3>

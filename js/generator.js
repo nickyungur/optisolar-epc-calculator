@@ -9,6 +9,10 @@
 (function () {
     "use strict";
 
+    // Выработка СЭС, кВт·ч в год на кВтп панелей — осторожная база для оффера и окупаемости
+    // (решение пользователя 2026-11-04; норма yieldKwhPerKwp базы ставок больше не используется)
+    const YIELD_KWH_PER_KWP = 1100;
+
     function rb() {
         return window.RATEBOOK_ACTIVE || window.RATEBOOK;
     }
@@ -446,7 +450,9 @@
                 nameRu: `Панель PV TOPCon ${N.panelWp} Вт`
             });
             info.panels = panels;
-            info.pvAnnualKwh = Math.round(pvKwp * N.yieldKwhPerKwp);
+            // выработка — осторожная база 1 100 кВт·ч на кВтп панелей (решение пользователя 2026-11-04,
+            // было 1 350 из базы ставок): ожидания не завышаем, превышение клиенту приятно
+            info.pvAnnualKwh = Math.round(pvKwp * YIELD_KWH_PER_KWP);
             pvAcKw = requestedInverterKw || pvKwp / 1.15;
 
             if (sel.hybInv && sel.pvOnHybrid) {

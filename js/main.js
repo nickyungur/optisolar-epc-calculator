@@ -1635,6 +1635,8 @@
         const yearEst = pvSh ? OFFER.estimate(pvSh.info, pvSh.result, offerState(pvSh).meta) : null;
         const estLine = !yearEst ? [] : [yearEst.cons
             ? `Оценка на год: выработка ≈ ${fmt0(Math.round(yearEst.annual / 100) * 100)} кВт·ч, потребление ${fmt0(yearEst.cons)} кВт·ч, экономия ≈ ${fmt0(yearEst.savings)} MDL (тариф ${String(yearEst.tariff).replace(".", ",")}, прямое ${Math.round(yearEst.share * 100)}%${yearEst.netb ? ", излишки по facturare netă" : ""}), окупаемость ≈ ${String(yearEst.payback).replace(".", ",")} лет${state.segment === "home" ? " от цены с TVA" : " от цены без TVA"}`
+            : yearEst.own
+            ? `Оценка на год: выработка ≈ ${fmt0(Math.round(yearEst.annual / 100) * 100)} кВт·ч (1 100 кВт·ч/кВтп); потребление не введено — вся выработка на собственные нужды по тарифу ${String(yearEst.tariff).replace(".", ",")}: экономия ≈ ${fmt0(yearEst.savings)} MDL, окупаемость ≈ ${String(yearEst.payback).replace(".", ",")} лет от цены без TVA`
             : `Оценка на год: выработка ≈ ${fmt0(Math.round(yearEst.annual / 100) * 100)} кВт·ч; потребление не введено — экономии и окупаемости в оффере нет`];
         const head = [
             `Оффер ${no.number} от ${isoToRo(no.date)}${no.fixed ? "" : " (черновик)"}, действует до ${dRo(no.until)}`,
