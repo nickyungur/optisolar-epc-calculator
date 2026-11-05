@@ -134,7 +134,11 @@ window.RATEBOOK = {
         dare_home:        { ru: "Сдача в эксплуатацию (дом)", ro: "Darea în exploatare", cat: "grid", unit: "lot" },
         dare_biz:         { ru: "Сдача в эксплуатацию (бизнес 0,4 кВ)", ro: "Darea în exploatare", cat: "grid", unit: "lot" },
         dare_mv:          { ru: "Сдача в эксплуатацию СН (оператор, документы)", ro: "Darea în exploatare (MT): documentație și recepție", cat: "grid", unit: "lot" },
-        ecology:          { ru: "Экологическая экспертиза", ro: "Evaluare / aviz de mediu", cat: "grid", unit: "lot" }
+        ecology:          { ru: "Экологическая экспертиза", ro: "Evaluare / aviz de mediu", cat: "grid", unit: "lot" },
+
+        // ---------- Скидка (2026-11-05) ----------
+        // сумма скидки без TVA — в поле «Цена» при добавлении; в расчёте и оффере идёт минусом, последней строкой
+        discount:         { ru: "Скидка (DISCOUNT)", ro: "Reducere (DISCOUNT)", cat: "discount", unit: "lot", price: 0, cur: "MDL", vat: "excl", date: "", src: "Скидка клиенту — сумма вручную", status: "opt" }
     }
 };
 

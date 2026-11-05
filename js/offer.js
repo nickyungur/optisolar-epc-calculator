@@ -111,6 +111,7 @@
             cPerKwp: "Preț pe 1 kWp{x}, {vat}", cPerKwh: "Preț pe 1 kWh, {vat}", cNet: "fără TVA", cGross: "cu TVA",
             cNote: "Plata — conform contractului. Livrare — până la 30 de zile, montaj și punere în funcțiune — până la 30 de zile de la livrare. Detaliat — pe paginile următoare.",
             cParts: "Lucrările comune (proiectare, transport, darea în exploatare) sunt incluse în fiecare componentă; la realizarea împreună se optimizează în oferta finală.",
+            discount: "Reducere",
             rTitle: "Rezultatul estimat pe an", rStoreTitle: "Sistemul de stocare", rProd: "Producție", rSave: "Economie", rPay: "Recuperarea investiției",
             // лист окупаемости бизнеса (2026-11-04, по слайду «Impact și eficiență economică» презентации JLC)
             pbKicker: "INDICATORI DE DECIZIE", pbTitle: "Impact și eficiență economică", pbTitleProd: "Producție estimată și impact asupra mediului",
@@ -214,6 +215,7 @@
             cPerKwp: "Цена за 1 кВтп{x}, {vat}", cPerKwh: "Цена за 1 кВт·ч, {vat}", cNet: "без TVA", cGross: "с TVA",
             cNote: "Оплата — по договору. Поставка — до 30 дней, монтаж и пуск — до 30 дней после поставки. Подробно — на следующих страницах.",
             cParts: "Общие работы (проект, транспорт, сдача в эксплуатацию) входят в каждую часть; если строим вместе, они уменьшатся в финальном предложении.",
+            discount: "Скидка",
             rTitle: "Оценка на год", rStoreTitle: "Накопитель", rProd: "Выработка", rSave: "Экономия", rPay: "Окупаемость",
             pbKicker: "ПОКАЗАТЕЛИ ДЛЯ РЕШЕНИЯ", pbTitle: "Экономический эффект", pbTitleProd: "Выработка и экологический эффект",
             pbNoteProd: "Осторожная оценка: {y} кВт·ч/кВтп в год — реальная выработка зависит от ориентации, тени и погоды. Расчёт не является гарантией.",
@@ -449,6 +451,9 @@
         if (parts.length === 1) {
             hero = val(parts[0]);
             rows = (x.blocks || []).map(b => ({ label: `${b.letter} · ${b.name}${b.title ? " " + b.title : ""}`, v: b.gross }));
+            // скидка — отдельной строкой под частями, итог выше её уже учитывает
+            const dGross = parts[0].result.items.filter(i => i.discount).reduce((s, i) => s + i.totalWithVat, 0);
+            if (dGross < -0.004) rows.push({ label: t.discount, v: vatOn ? dGross : parts[0].result.items.filter(i => i.discount).reduce((s, i) => s + i.totalSell, 0) });
         } else {
             const label = p => p === pv
                 ? `${t.blockPv} ${powerTitle({ ...p.info, product: "pv" }, meta, lang)}`
@@ -621,14 +626,14 @@
             // ключи — JSON: в ключе генератора уже есть «|» (ставка|название)
             return `<button type="button" class="offer-row-del" data-del="${esc(JSON.stringify(keys))}" data-sheet="${esc(opts.sheet || "main")}" title="Убрать строку из расчёта" aria-label="Убрать строку из расчёта">×</button>`;
         };
-        const row = (name, qty, unit, price, net, vatLbl, vat, gross, spec, its) => {
+        const row = (name, qty, unit, price, net, vatLbl, vat, gross, spec, its, cls) => {
             nr += 1;
             const cells = [
                 ["c-name offer-description-cell", esc(name) + (spec ? `<small class="offer-item-spec">${esc(spec)}</small>` : "")],
                 ["c-qty", esc(qty)], ["c-unit", esc(unit)], ["c-price", esc(price)],
                 ["c-net", esc(net)], ["c-vatp", esc(vatLbl)], ["c-vat", esc(vat)], ["c-total", esc(gross)]
             ];
-            return `<tr><td class="c-n">${esc(nr)}${delBtn(its || [])}</td>${cells.map(([cls, v]) => `<td${edc(cls)}>${v}</td>`).join("")}</tr>`;
+            return `<tr${cls ? ` class="${cls}"` : ""}><td class="c-n">${esc(nr)}${delBtn(its || [])}</td>${cells.map(([cls, v]) => `<td${edc(cls)}>${v}</td>`).join("")}</tr>`;
         };
         // работы станции без TVA — «scutit» (решение 6), остальные ставки — процентом
         const vatLbl = (pct, exempt) => exempt && vatOn ? t.scutit : `${qtyFmt(pct)}%`;
@@ -647,7 +652,12 @@
             const names = [...new Set(gi.map(i => String(nm(i) || "").trim()).filter(Boolean))];
             return names.length > 7 ? names.slice(0, 7).join("; ") + "; …" : names.join("; ");
         };
-        const live = result.items.filter(i => Math.abs(i.totalSell) > 0.004);
+        // скидка (2026-11-05) — не в блоках и группах, а последней строкой таблицы (или отдельно под блоками A/B)
+        const liveAll = result.items.filter(i => Math.abs(i.totalSell) > 0.004);
+        const discounts = liveAll.filter(i => i.discount || i.category === "discount");
+        const live = liveAll.filter(i => !discounts.includes(i));
+        const discRows = () => discounts.map(i => row(nm(i), qtyFmt(i.quantity), unitLabel(i.unit || "lot", lang), m(i.sell), m(i.totalSell),
+            vatLbl(i.vatPct || 0, false), m(i.vatAmount), m(i.totalWithVat), "", [i], "offer-discount-row")).join("");
         const sum = (its, f) => its.reduce((s, i) => s + i[f], 0);
         const tableBody = its => {
             let html = its.filter(i => i.category === "main-equipment").map(i => row(
@@ -751,12 +761,13 @@
     ${tableHtml(rows)}
     ${blockTotal(net, vat, gross, (vatOn ? t.blockTotal : t.blockTotalNoVat).replace("{x}", b.letter))}
   </section>`;
-            }).join("") + summaryBox(allNet, result.vatAmount, allGross,
+            }).join("") + (discounts.length ? `
+  <section class="offer-block offer-discount-block">${tableHtml(discRows())}</section>` : "") + summaryBox(allNet, result.vatAmount, allGross,
                 (vatOn ? t.grandTotal : t.grandTotalNoVat).replace("{x}", letters), finalPer, "offer-summary-all");
         } else {
             const per = info.product === "bess" ? bessPer(result.commercialPrice, result.priceWithVat)
                 : (info.pvKwp > 0 ? pvPer(result.commercialPrice, result.priceWithVat) : "");
-            tablesHtml = tableHtml(body + optRows()) + summaryBox(result.commercialPrice, result.vatAmount, result.priceWithVat, vatOn ? t.total : t.totalNoVat, per);
+            tablesHtml = tableHtml(body + optRows() + discRows()) + summaryBox(result.commercialPrice, result.vatAmount, result.priceWithVat, vatOn ? t.total : t.totalNoVat, per);
         }
 
         // ---- карточки рядом с клиентом: режим и цель, оценка на год (СЭС), данные накопителя (бизнес) ----

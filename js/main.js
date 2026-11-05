@@ -31,7 +31,8 @@
         "logistics": "Техника и логистика",
         "electrical": "Электромонтаж",
         "commissioning": "Пусконаладка и испытания",
-        "grid": "Сдача и разрешения"
+        "grid": "Сдача и разрешения",
+        "discount": "Скидка"   // минусом, последней строкой оффера (2026-11-05)
     };
     const CAT_ORDER = Object.keys(CAT_RU);
     const WORK_CATS = ["electrical", "civil", "commissioning"];   // разделы работ: TVA по ст. 103 п. 30 (GEN.workVat)
@@ -507,12 +508,12 @@
         // бюджет «цена за кВтп» — только на позиции СЭС; блок аккумулятора — своей ценой
         const bt = isBessSheet(sheet) ? store(sheet) : state;
         const bessBase = bt.bessPriceUnit === "kwh" ? gen.info.bessKwh : gen.info.bessKw;
-        const bessItems = items.filter(it => !isOptionalItem(it) && it.section === "bess");
+        const bessItems = items.filter(it => !isOptionalItem(it) && it.section === "bess" && it.category !== "discount");
         if (bessBase > 0 && state.product !== "pv" && bessItems.length) {
             const target = (Number(bt.bessPrice) || 0) * (bt.bessPriceCurrency === "EUR" ? eurRate() : 1);
             fit.bess = fitBlock(bessItems, bessBase, bt.bessPriceUnit === "kwh" ? "кВт·ч" : "кВт", target, bt.bessPriceVat === "gross");
         }
-        const coreItems = items.filter(it => !isOptionalItem(it) && it.section !== "bess");
+        const coreItems = items.filter(it => !isOptionalItem(it) && it.section !== "bess" && it.category !== "discount");
         if (state.product !== "bess" && gen.info.pvKwp > 0 && coreItems.length) {
             const target = (Number(state.pricePerKwp) || 0) * (state.pricePerKwpCurrency === "EUR" ? eurRate() : 1);
             fit.pv = fitBlock(coreItems, gen.info.pvKwp, "кВтп", target, state.pricePerKwpVat === "gross");
@@ -533,7 +534,10 @@
             vatEnabled: state.vatEnabled !== false,
             vatPct: window.RATEBOOK_ACTIVE.vatPct
         };
-        const coreItems = items.filter(it => !it.optional);
+        // скидка (2026-11-05) — не позиция движка: продажа там = себестоимость × коэф., и минус уменьшил бы
+        // себестоимость вместе с ценой. Считаем здесь: цена, TVA и прибыль меньше, себестоимость та же
+        const isDisc = it => it.category === "discount";
+        const coreItems = items.filter(it => !it.optional && !isDisc(it));
         const optionalItems = items.filter(it => it.optional);
         if (gen.info.pvKwp > 0 && Number(state.powerIncreasePrice) > 0) {
             const rate = Number(window.RATEBOOK_ACTIVE.vatPct) || 0;
@@ -541,6 +545,22 @@
             optionalItems.push({ name: "Услуга по увеличению мощности", nameRu: "Услуга по увеличению мощности", category: "grid", unit: "lot", quantity: 1, cost: price, coefficient: 1, vatPct: settings.vatEnabled ? rate : 0, status: "opt", _key: "optional-power-increase", optional: true });
         }
         const result = CALC.calculateProject(coreItems, settings);
+        const disc = items.filter(isDisc).map(it => {
+            const qty = Number(it.quantity) || 0;
+            const net = -Math.abs(qty * (Number(it.cost) || 0));
+            const vatPct = settings.vatEnabled ? Math.max(0, Number(it.vatPct ?? settings.vatPct) || 0) : 0;
+            return { ...it, section: "", coefficient: 1, quantity: qty, sell: qty ? net / qty : net, totalCost: 0, totalSell: net, vatPct, vatAmount: net * vatPct / 100, totalWithVat: net * (1 + vatPct / 100), discount: true };
+        });
+        if (disc.length) {
+            const dNet = disc.reduce((s, i) => s + i.totalSell, 0), dVat = disc.reduce((s, i) => s + i.vatAmount, 0);
+            result.items.push(...disc);
+            result.rawSell += dNet;
+            result.commercialPrice += dNet;
+            result.vatAmount += dVat;
+            result.priceWithVat += dNet + dVat;
+            result.profit += dNet;
+            result.effectiveMargin = result.commercialPrice > 0 ? result.profit / result.commercialPrice * 100 : 0;
+        }
         const optionalResult = CALC.calculateProject(optionalItems, { ...settings, indirectPct: 0, riskPct: 0 });
         return { sheet, name: sheetName(sheet), inOffer: sheetInOffer(sheet), gen, items: [...result.items, ...optionalResult.items], optionalItems: optionalResult.items, result, info: gen.info, fit, editsInfo };
     }
@@ -1987,7 +2007,7 @@
             renderEquipRates(($("rateFilter").value || "").toLowerCase());
             return;
         }
-        $("coefTable").innerHTML = `<table class="coef"><thead><tr><th></th><th>Дом</th><th>Бизнес</th></tr></thead><tbody>${CAT_ORDER.map(c => `<tr><td>${CAT_RU[c]}</td><td><input data-coef="home|${c}" inputmode="decimal" value="${rb.coefficients.home[c]}"></td><td><input data-coef="biz|${c}" inputmode="decimal" value="${rb.coefficients.biz[c]}"></td></tr>`).join("")}</tbody></table>`;
+        $("coefTable").innerHTML = `<table class="coef"><thead><tr><th></th><th>Дом</th><th>Бизнес</th></tr></thead><tbody>${CAT_ORDER.filter(c => c !== "discount").map(c => `<tr><td>${CAT_RU[c]}</td><td><input data-coef="home|${c}" inputmode="decimal" value="${rb.coefficients.home[c]}"></td><td><input data-coef="biz|${c}" inputmode="decimal" value="${rb.coefficients.biz[c]}"></td></tr>`).join("")}</tbody></table>`;
         const q = ($("rateFilter").value || "").toLowerCase();
         const groups = {};
         Object.entries(rb.rates).forEach(([id, r]) => {
