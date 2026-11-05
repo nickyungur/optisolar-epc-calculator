@@ -307,6 +307,12 @@ body.no-scroll { overflow: hidden; }
 .offer-row-del { display: block; margin: 4px auto 0; width: 22px; height: 22px; padding: 0; border: 1px solid #e3b4b4; border-radius: 50%; background: #fff; color: #c62828; font: 700 14px/1 -apple-system, Arial, sans-serif; cursor: pointer; }
 @media (pointer: coarse) { .offer-row-del { width: 28px; height: 28px; font-size: 16px; } }
 @media print { .offer-row-del { display: none !important; } }
+/* × у плитки выработки и окупаемости (2026-11-05): обложка и лист окупаемости; в PDF и печать не идёт */
+.offer-cover-tile, .offer-payback-tile { position: relative; }
+.offer-tile-del { position: absolute; top: 6px; right: 6px; width: 22px; height: 22px; padding: 0; border: 1px solid #e3b4b4; border-radius: 50%; background: #fff; color: #c62828; font: 700 14px/1 -apple-system, Arial, sans-serif; cursor: pointer; }
+@media (pointer: coarse) { .offer-tile-del { width: 28px; height: 28px; font-size: 16px; } }
+@media print { .offer-tile-del { display: none !important; } }
+.tiles-hidden .btn { padding: 4px 10px; font-size: 13px; }
 .offer-pricing-table td.offer-description-cell { text-align: left; white-space: normal; min-width: 125px; font-weight: 600; }
 .offer-summary-wrap { display: flex; justify-content: flex-end; margin: 14px 0 16px; }
 .offer-summary { width: min(420px, 100%); border: 1px solid #d9dde2; border-radius: 8px; overflow: hidden; background: rgba(255, 255, 255, .92); }
