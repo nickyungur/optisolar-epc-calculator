@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <meta name="robots" content="noindex, nofollow, noarchive">
 <title>OptiSolar · Калькулятор КП</title>
-<link rel="stylesheet" href="css/app.css?v=20261104-p3">
+<link rel="stylesheet" href="css/app.css?v=20261105-t1">
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 </head>
 <body>
@@ -134,7 +134,7 @@
         <div class="field"><label for="client">Название / имя</label><input id="client" placeholder="Exemplu SRL"></div>
         <div class="field"><label for="location">Населённый пункт</label><input id="location" placeholder="or. Călărași"></div>
         <div class="field"><label for="leadId">ID лида</label><input id="leadId" placeholder="L-0042"></div>
-        <div class="field" id="goalBox"><label for="goal">Цель накопителя</label>
+        <div class="field" id="goalBox"><label for="goal">Цель станции</label>
           <select id="goal">
             <option value="">—</option>
             <option value="backup">Резерв (backup)</option>
@@ -143,6 +143,7 @@
             <option value="zero_export">Zero Export</option>
             <option value="arbitrage">Арбитраж</option>
             <option value="hybrid">Несколько целей</option>
+            <option value="grid_sale">Продажа в сеть</option>
           </select>
         </div>
       </div>
@@ -236,6 +237,7 @@
         <p class="hint" id="fxSrc"></p>
       </div>
       <div class="field"><label>Реализованные объекты в оффере (фото внизу)</label><div class="refs-pick" id="refsPick"></div></div>
+      <p class="hint tiles-hidden" id="tilesHidden" hidden><span id="tilesHiddenText"></span> <button type="button" class="btn" id="btnTilesBack">Вернуть плитки</button></p>
       <div class="buttons small export-bar">
         <button type="button" class="btn primary" data-preview="a4">Просмотр и PDF A4</button>
         <button type="button" class="btn primary" data-preview="mobile">Просмотр и PDF для телефона</button>
@@ -377,8 +379,8 @@
 <script src="js/ratebook.js?v=20261030-w4"></script>
 <script src="js/generator.js?v=20261104-p1"></script>
 <script src="js/references.js?v=20261030-w2"></script>
-<script src="js/offer.js?v=20261104-p1"></script>
+<script src="js/offer.js?v=20261105-s1"></script>
 <script src="js/sync.js?v=20261026-1"></script>
-<script src="js/main.js?v=20261104-p1"></script>
+<script src="js/main.js?v=20261105-s1"></script>
 </body>
 </html>
