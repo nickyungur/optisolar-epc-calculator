@@ -307,6 +307,9 @@ body.no-scroll { overflow: hidden; }
 .offer-row-del { display: block; margin: 4px auto 0; width: 22px; height: 22px; padding: 0; border: 1px solid #e3b4b4; border-radius: 50%; background: #fff; color: #c62828; font: 700 14px/1 -apple-system, Arial, sans-serif; cursor: pointer; }
 @media (pointer: coarse) { .offer-row-del { width: 28px; height: 28px; font-size: 16px; } }
 @media print { .offer-row-del { display: none !important; } }
+/* скидка — последней строкой оффера, красным (2026-11-05) */
+.offer-pricing-table tr.offer-discount-row td { color: #c62828; font-weight: 700; }
+.offer-discount-block thead { display: none; }   /* под блоками A/B — одна строка скидки, без второй шапки */
 /* × у плитки выработки и окупаемости (2026-11-05): обложка и лист окупаемости; в PDF и печать не идёт */
 .offer-cover-tile, .offer-payback-tile { position: relative; }
 .offer-tile-del { position: absolute; top: 6px; right: 6px; width: 22px; height: 22px; padding: 0; border: 1px solid #e3b4b4; border-radius: 50%; background: #fff; color: #c62828; font: 700 14px/1 -apple-system, Arial, sans-serif; cursor: pointer; }
