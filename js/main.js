@@ -138,7 +138,8 @@
         manual: false,      // позиции импортированы из calc-input.json — генератор не добавляет свои
         fxManual: null,     // курс EUR вручную на дату оффера: { EUR, iso }; на другой день не действует
         projectId: null,    // открытый сохранённый проект (pid): «Сохранить проект» обновляет его; null — новый
-        fenceM: null        // ограждение, м: null — авто (бизнес: наземная СЭС, BESS на площадке), 0 — без забора и камер
+        fenceM: null,       // ограждение, м: null — авто (бизнес: наземная СЭС, BESS на площадке), 0 — без забора и камер
+        offerHide: []       // плитки выработки и окупаемости, убранные × в оффере: prod, inv, save, pay, co2
     };
     // расчёты до 2026-10-29 открываются без забора и камер (fenceM: 0) — их итог не меняется;
     // до 2026-10-30 цена за кВтп и цена BESS вводились без TVA
@@ -336,13 +337,15 @@
         const mv = biz && state.voltage !== "0.4";
         document.querySelectorAll("[data-show]").forEach(el => {
             const k = el.dataset.show;
-            const show = k === "equip" ? !state.manual : k === "home" ? home : k === "pv" || k === "savings" ? hasPv : k === "inverter" ? (hasPv || (home && hasBess)) : k === "bess" ? hasBess : k === "bess-power" ? (hasBess && biz) : k === "biz" ? biz : k === "mv" ? mv : k === "zero" ? (hasPv && !(biz && hasBess)) : k === "home-roof" ? (home && hasPv) : k === "fence" ? (biz && ((hasPv && state.mount === "ground") || hasBess)) : true;
+            const show = k === "equip" ? !state.manual : k === "home" ? home : k === "pv" ? hasPv : k === "savings" ? hasPv && state.goal !== "grid_sale" : k === "inverter" ? (hasPv || (home && hasBess)) : k === "bess" ? hasBess : k === "bess-power" ? (hasBess && biz) : k === "biz" ? biz : k === "mv" ? mv : k === "zero" ? (hasPv && !(biz && hasBess)) : k === "home-roof" ? (home && hasPv) : k === "fence" ? (biz && ((hasPv && state.mount === "ground") || hasBess)) : true;
             el.hidden = !show;
         });
         $("validDays").placeholder = `Авто: ${autoValidDays()}`;
         $("selfShare").placeholder = `Авто: ${hasBess ? OFFER.EST.shareBat : OFFER.EST.shareNoBat}`;
-        $("goalBox").hidden = !hasBess;
+        $("goalBox").hidden = !(hasBess || biz);   // цель станции: у бизнеса и с СЭС — «продажа в сеть» (2026-11-05)
     }
+    // «Продажа в сеть» прячет поля потребления и тарифа (шаг ①): окупаемость по ним не считается
+    $("goal").addEventListener("change", updateVisibility);
     // срок оффера: введённый или по сегменту — дом 14 дней, бизнес и BESS 30 (решение 2, 2026-10-30)
     const autoValidDays = () => state.segment === "home" ? 14 : 30;
     const validDaysEff = () => Number(state.validDays) > 0 ? Number(state.validDays) : autoValidDays();
@@ -1220,6 +1223,7 @@
                 managerRole: String(state.managerRole || "").trim() || "Project Manager",
                 managerPhone: state.managerPhone, managerEmail: String(state.managerEmail || "").trim(),
                 mount: state.mount, zeroExport: !!state.zeroExport,
+                hideTiles: Array.isArray(state.offerHide) ? state.offerHide : [],
                 consumptionKwh: state.consumptionKwh, tariff: state.tariff, selfShare: state.selfShare,
                 acKw: !isBessSheet(sh.sheet) && Number(state.inverterKw) > 0 ? Number(state.inverterKw) : 0,
                 roofType: state.segment === "home" && state.product !== "bess" ? state.roofType : "",
@@ -1305,6 +1309,7 @@
     function renderOffer() {
         if (!last) return;
         renderOfferNo();
+        renderTilesHidden();
         renderRefsPick();
         const list = (last.sheets || [last]).filter(x => x.inOffer !== false);
         if (!list.length) { $("offerDoc").innerHTML = '<p class="hint">Ни один лист не отмечен «в оффере» — отметь в шаге ③.</p>'; return; }
@@ -1346,6 +1351,24 @@
         });
         recalc();
     });
+
+    // × у плитки выработки и окупаемости (2026-11-05): плитка уходит из оффера этого проекта; «Вернуть плитки» — в шаге ④
+    const TILE_RU = { prod: "Выработка", inv: "Инвестиция", save: "Экономия", pay: "Окупаемость", co2: "CO₂" };
+    $("offerDoc").addEventListener("click", e => {
+        const btn = e.target.closest(".offer-tile-del");
+        if (!btn) return;
+        e.preventDefault();
+        const key = btn.dataset.tile;
+        const hide = Array.isArray(state.offerHide) ? state.offerHide : [];
+        if (key && !hide.includes(key)) state.offerHide = [...hide, key];
+        recalc();
+    });
+    $("btnTilesBack").addEventListener("click", () => { state.offerHide = []; recalc(); });
+    function renderTilesHidden() {
+        const hide = Array.isArray(state.offerHide) ? state.offerHide : [];
+        $("tilesHidden").hidden = !hide.length;
+        $("tilesHiddenText").textContent = hide.length ? "Убраны плитки: " + hide.map(k => TILE_RU[k] || k).join(", ") + "." : "";
+    }
 
     // ---------- номер оффера (ревизия 2026-10-29: номер и дата менялись при каждом открытии) ----------
     // OP-ГГГГММДД-L-0042-v1 (без ID лида — время вместо него). Черновик считается от сегодняшнего дня;
@@ -1418,7 +1441,7 @@
         return Array.from($("offerDoc").querySelectorAll(".offer-document")).map(el => {
             const doc = el.cloneNode(true);
             doc.querySelectorAll("[contenteditable]").forEach(x => x.removeAttribute("contenteditable"));
-            doc.querySelectorAll(".offer-row-del").forEach(x => x.remove());
+            doc.querySelectorAll(".offer-row-del, .offer-tile-del").forEach(x => x.remove());
             doc.classList.add(format === "a4" ? "offer-a4" : "offer-narrow");
             return doc;
         });
@@ -1535,7 +1558,7 @@
         const offers = Array.from($("offerDoc").querySelectorAll(".offer-document")).map(doc => {
             const offer = doc.cloneNode(true);
             offer.querySelectorAll("img").forEach(img => img.removeAttribute("src")); // логотип есть и в браузере
-            offer.querySelectorAll(".offer-row-del").forEach(x => x.remove());
+            offer.querySelectorAll(".offer-row-del, .offer-tile-del").forEach(x => x.remove());
             return offer.outerHTML;
         });
         const job = SYNC.pack(JSON.stringify({ v: 1, state, rb: rbOverrides, base: rbBase, fx: fxBnm, offer: offers[0] || "", offers }));
@@ -1635,6 +1658,8 @@
         const yearEst = pvSh ? OFFER.estimate(pvSh.info, pvSh.result, offerState(pvSh).meta) : null;
         const estLine = !yearEst ? [] : [yearEst.cons
             ? `Оценка на год: выработка ≈ ${fmt0(Math.round(yearEst.annual / 100) * 100)} кВт·ч, потребление ${fmt0(yearEst.cons)} кВт·ч, экономия ≈ ${fmt0(yearEst.savings)} MDL (тариф ${String(yearEst.tariff).replace(".", ",")}, прямое ${Math.round(yearEst.share * 100)}%${yearEst.netb ? ", излишки по facturare netă" : ""}), окупаемость ≈ ${String(yearEst.payback).replace(".", ",")} лет${state.segment === "home" ? " от цены с TVA" : " от цены без TVA"}`
+            : yearEst.noEcon
+            ? `Оценка на год: выработка ≈ ${fmt0(Math.round(yearEst.annual / 100) * 100)} кВт·ч (1 100 кВт·ч/кВтп); цель — продажа в сеть: окупаемость и тариф потребителя не считаем, в оффере выработка и CO₂`
             : yearEst.own
             ? `Оценка на год: выработка ≈ ${fmt0(Math.round(yearEst.annual / 100) * 100)} кВт·ч (1 100 кВт·ч/кВтп); потребление не введено — вся выработка на собственные нужды по тарифу ${String(yearEst.tariff).replace(".", ",")}: экономия ≈ ${fmt0(yearEst.savings)} MDL, окупаемость ≈ ${String(yearEst.payback).replace(".", ",")} лет от цены без TVA`
             : `Оценка на год: выработка ≈ ${fmt0(Math.round(yearEst.annual / 100) * 100)} кВт·ч; потребление не введено — экономии и окупаемости в оффере нет`];

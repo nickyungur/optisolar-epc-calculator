@@ -85,7 +85,7 @@
             bNoteFin: ", anexată la oferta finală",
             terms: "CONDIȚII COMERCIALE", pay: "Plata",
             term: "Termene", termVal: "livrarea echipamentului — până la 30 de zile calendaristice de la avans și avizul de racordare; montaj și punere în funcțiune — până la 30 de zile de la livrare; admiterea în exploatare — până la 30 de zile lucrătoare",
-            warr: "Garanții", wPv: "module fotovoltaice 10–15 ani", wInv: "invertoare 5–10 ani", wMount: "structura de montaj 10 ani", wBat: "acumulatoare — conform producătorului", wWorks: "lucrări de montaj 5 ani",
+            warr: "Garanții", wPv: "module fotovoltaice 10–15 ani", wInv: "invertoare 5–10 ani", wMount: "structura de montaj 10 ani", wBat: "acumulatoare — conform producătorului", wWorks: "lucrări de montaj 2 ani",
             wNote: " (echipamentul — conform fișei producătorului)",
             serv: "Mentenanță", servVal: "gratuită 36 de luni de la punerea în funcțiune; intervenție la defect — până la 48 de ore",
             roles: "CINE CE FACE", rUs: "OptiSolar",
@@ -113,7 +113,8 @@
             cParts: "Lucrările comune (proiectare, transport, darea în exploatare) sunt incluse în fiecare componentă; la realizarea împreună se optimizează în oferta finală.",
             rTitle: "Rezultatul estimat pe an", rStoreTitle: "Sistemul de stocare", rProd: "Producție", rSave: "Economie", rPay: "Recuperarea investiției",
             // лист окупаемости бизнеса (2026-11-04, по слайду «Impact și eficiență economică» презентации JLC)
-            pbKicker: "INDICATORI DE DECIZIE", pbTitle: "Impact și eficiență economică",
+            pbKicker: "INDICATORI DE DECIZIE", pbTitle: "Impact și eficiență economică", pbTitleProd: "Producție estimată și impact asupra mediului",
+            pbNoteProd: "Estimare prudentă: {y} kWh/kWp pe an — producția reală depinde de orientare, umbrire și vreme. Calculul nu reprezintă o garanție.",
             pbInv: "Investiție estimată", pbInvVal: "{sum} fără TVA", pbSave: "Economie anuală", pbSaveVal: "≈ {sum}/an",
             pbPay: "Perioadă de recuperare", pbCo2: "Reducere CO₂", pbCo2Val: "≈ {t} t/an",
             pbProd: "Indicatori de producție", pbAnnual: "Producție anuală", pbSpec: "Producție specifică", pbSpecVal: "{y} kWh/kWp/an",
@@ -125,7 +126,7 @@
             incTitle: "Inclus în preț",
             inc: ["Echipamente noi, cu garanția producătorului", "Proiect de execuție și autorizații", "Montaj, punere în funcțiune și admitere în exploatare"],
             incGrid: "Dosarul la operatorul de rețea", incProsumer: " și contractul de prosumator",
-            incServ: ["Garanție la lucrări 5 ani; mentenanță gratuită 36 de luni", "Intervenție la defect — până la 48 de ore"],
+            incServ: ["Garanție la lucrări 2 ani; mentenanță gratuită 36 de luni", "Intervenție la defect — până la 48 de ore"],
             ask: "Aveți întrebări? Sunați-ne"
         },
         ru: {
@@ -188,7 +189,7 @@
             bNoteFin: ", он прилагается к финальному предложению",
             terms: "КОММЕРЧЕСКИЕ УСЛОВИЯ", pay: "Оплата",
             term: "Сроки", termVal: "поставка оборудования — до 30 календарных дней после аванса и авиза на подключение; монтаж и пуск — до 30 дней после поставки; допуск в эксплуатацию — до 30 рабочих дней",
-            warr: "Гарантии", wPv: "панели 10–15 лет", wInv: "инверторы 5–10 лет", wMount: "крепёж 10 лет", wBat: "аккумуляторы — по производителю", wWorks: "монтажные работы 5 лет",
+            warr: "Гарантии", wPv: "панели 10–15 лет", wInv: "инверторы 5–10 лет", wMount: "крепёж 10 лет", wBat: "аккумуляторы — по производителю", wWorks: "монтажные работы 2 года",
             wNote: " (оборудование — по паспорту производителя)",
             serv: "Обслуживание", servVal: "бесплатно 36 месяцев после пуска; выезд на неисправность — до 48 часов",
             roles: "КТО ЗА ЧТО ОТВЕЧАЕТ", rUs: "OptiSolar",
@@ -214,7 +215,8 @@
             cNote: "Оплата — по договору. Поставка — до 30 дней, монтаж и пуск — до 30 дней после поставки. Подробно — на следующих страницах.",
             cParts: "Общие работы (проект, транспорт, сдача в эксплуатацию) входят в каждую часть; если строим вместе, они уменьшатся в финальном предложении.",
             rTitle: "Оценка на год", rStoreTitle: "Накопитель", rProd: "Выработка", rSave: "Экономия", rPay: "Окупаемость",
-            pbKicker: "ПОКАЗАТЕЛИ ДЛЯ РЕШЕНИЯ", pbTitle: "Экономический эффект",
+            pbKicker: "ПОКАЗАТЕЛИ ДЛЯ РЕШЕНИЯ", pbTitle: "Экономический эффект", pbTitleProd: "Выработка и экологический эффект",
+            pbNoteProd: "Осторожная оценка: {y} кВт·ч/кВтп в год — реальная выработка зависит от ориентации, тени и погоды. Расчёт не является гарантией.",
             pbInv: "Инвестиция (оценка)", pbInvVal: "{sum} без TVA", pbSave: "Экономия в год", pbSaveVal: "≈ {sum}/год",
             pbPay: "Срок окупаемости", pbCo2: "Снижение CO₂", pbCo2Val: "≈ {t} т/год",
             pbProd: "Показатели выработки", pbAnnual: "Выработка в год", pbSpec: "Удельная выработка", pbSpecVal: "{y} кВт·ч/кВтп в год",
@@ -226,7 +228,7 @@
             incTitle: "Входит в цену",
             inc: ["Новое оборудование с гарантией производителя", "Рабочий проект и разрешения", "Монтаж, пуск и допуск в эксплуатацию"],
             incGrid: "Документы у оператора сети", incProsumer: " и договор просюмера",
-            incServ: ["Гарантия на работы 5 лет; бесплатное обслуживание 36 месяцев", "Выезд на неисправность — до 48 часов"],
+            incServ: ["Гарантия на работы 2 года; бесплатное обслуживание 36 месяцев", "Выезд на неисправность — до 48 часов"],
             ask: "Есть вопросы? Звоните"
         }
     };
@@ -238,7 +240,8 @@
             arbitrage: "stocarea energiei la preț mic și utilizarea ei la preț mare (arbitraj)",
             self_consumption: "creșterea autoconsumului energiei produse de centrala fotovoltaică",
             zero_export: "funcționare fără livrarea surplusului în rețea (Zero Export)",
-            hybrid: "autoconsum, rezervă și limitarea exportului"
+            hybrid: "autoconsum, rezervă și limitarea exportului",
+            grid_sale: "vânzarea energiei în rețea"
         },
         ru: {
             backup: "резервное питание при отключениях сети",
@@ -246,13 +249,14 @@
             arbitrage: "накопление дешёвой энергии и использование в дорогие часы (арбитраж)",
             self_consumption: "больше собственного потребления энергии солнечной станции",
             zero_export: "работа без выдачи излишков в сеть (Zero Export)",
-            hybrid: "самопотребление, резерв и ограничение экспорта"
+            hybrid: "самопотребление, резерв и ограничение экспорта",
+            grid_sale: "продажа энергии в сеть"
         }
     };
     // цель накопителя коротко — подпись последнего значка схемы у BESS без СЭС
     const GOAL_SHORT = {
-        ro: { backup: "Rezervă", peak_shaving: "Peak shaving", arbitrage: "Arbitraj", self_consumption: "Autoconsum", zero_export: "Zero Export", hybrid: "Autoconsum și rezervă" },
-        ru: { backup: "Резерв", peak_shaving: "Снижение пиков", arbitrage: "Арбитраж", self_consumption: "Самопотребление", zero_export: "Zero Export", hybrid: "Самопотребление и резерв" }
+        ro: { backup: "Rezervă", peak_shaving: "Peak shaving", arbitrage: "Arbitraj", self_consumption: "Autoconsum", zero_export: "Zero Export", hybrid: "Autoconsum și rezervă", grid_sale: "Vânzare în rețea" },
+        ru: { backup: "Резерв", peak_shaving: "Снижение пиков", arbitrage: "Арбитраж", self_consumption: "Самопотребление", zero_export: "Zero Export", hybrid: "Самопотребление и резерв", grid_sale: "Продажа в сеть" }
     };
 
     // Значки схемы на обложке — inline SVG с размерами (html2canvas рисует их картинкой)
@@ -344,6 +348,9 @@
         const annual = Number(info.pvAnnualKwh) || 0;
         if (!(info.pvKwp > 0) || !(annual > 0) || info.product === "bess") return null;
         const out = { annual, perKwp: Math.round(annual / info.pvKwp) };
+        // цель станции «продажа в сеть» — энергия идёт в сеть, а не на потребление: экономию, окупаемость
+        // и тариф потребителя не показываем, только выработка и CO₂ (решение пользователя 2026-11-05)
+        if (meta.goal === "grid_sale") return { ...out, noEcon: true };
         const cons = (Number(meta.consumptionKwh) || 0) * 12;
         const tariff = Number(meta.tariff) > 0 ? Number(meta.tariff) : EST.tariff;
         if (!(cons > 0)) {
@@ -361,6 +368,11 @@
         const savings = direct * tariff + exported;
         const price = info.segment === "home" ? result.priceWithVat : result.commercialPrice;
         return { ...out, cons, tariff, share, netb, savings, payback: savings > 0 ? Math.round(price / savings * 2) / 2 : 0 };
+    }
+
+    // × у плитки выработки и окупаемости на экране (2026-11-05): убирает её из оффера; в PDF и печать не идёт
+    function tileDel(key, editable) {
+        return editable ? `<button type="button" class="offer-tile-del" data-tile="${esc(key)}" title="Убрать плитку из оффера" aria-label="Убрать плитку из оффера">×</button>` : "";
     }
 
     // Режим СЭС: Zero Export, facturare netă (дом и до 200 кВт AC) или выдача по авизу; без СЭС — ""
@@ -470,12 +482,15 @@
 
         // оценка на год (как в карточке «Estimare anuală») или данные накопителя без СЭС
         const est = pv ? estimate(pv.info, pv.result, meta) : null;
-        const tile = (label, value) => `<div class="offer-cover-tile"><span${ed}>${esc(label)}</span><strong${ed}>${esc(value)}</strong></div>`;
+        // плитки выработки и окупаемости можно убрать × на экране (key — в meta.hideTiles); плитки накопителя — нет
+        const hidden = key => (meta.hideTiles || []).includes(key);
+        const tile = (label, value, key) => key && hidden(key) ? "" :
+            `<div class="offer-cover-tile">${key ? tileDel(key, x.editable) : ""}<span${ed}>${esc(label)}</span><strong${ed}>${esc(value)}</strong></div>`;
         const tiles = [];
         if (est) {
-            tiles.push(tile(t.rProd, t.prodVal.replace("{kwh}", qtyFmt(Math.round(est.annual / 100) * 100))));
-            if (est.savings) tiles.push(tile(t.rSave, t.saveVal.replace("{sum}", qtyFmt(Math.round(est.savings / k / 10) * 10)).replace("{cur}", cur)));
-            if (est.payback) tiles.push(tile(t.rPay, "≈ " + yearsFmt(est.payback, lang)));
+            tiles.push(tile(t.rProd, t.prodVal.replace("{kwh}", qtyFmt(Math.round(est.annual / 100) * 100)), "prod"));
+            if (est.savings) tiles.push(tile(t.rSave, t.saveVal.replace("{sum}", qtyFmt(Math.round(est.savings / k / 10) * 10)).replace("{cur}", cur), "save"));
+            if (est.payback) tiles.push(tile(t.rPay, "≈ " + yearsFmt(est.payback, lang), "pay"));
         }
         if (b0 && bKwh > 0) {
             if (b0.info.segment === "home") tiles.push(tile(t.rOut, t.rOutVal.replace("{kwh}", qtyFmt(bKwh))));
@@ -486,7 +501,7 @@
         const resNote = est
             ? t.estNote.replace("{y}", qtyFmt(est.perKwp)).replace("{tariff}", est.savings ? t.estTariff.replace("{t}", num1(est.tariff)) : "") + (est.own ? t.estOwn : "") + (est.cons && est.netb ? t.estNoteNet.replace("{credit}", num1(EST.credit)) : "")
             : t.bNote.replace("{fin}", final ? "" : t.bNoteFin);
-        const results = !tiles.length ? "" : `
+        const results = !tiles.filter(Boolean).length ? "" : `
       <div class="offer-cover-result">
         <h3${ed}>${esc(est ? t.rTitle : t.rStoreTitle)}</h3>
         <div class="offer-cover-tiles">${tiles.join("")}</div>
@@ -815,7 +830,7 @@
   </section>`;
         const top = cover
             ? coverHtml(cover, meta, {
-                t, lang, ed, k, cur, final, head: headHtml(t, ed, logo, false), title, meta: metaHtml(t, edc, number, now, valid, days),
+                t, lang, ed, k, cur, final, editable: !!opts.editable, head: headHtml(t, ed, logo, false), title, meta: metaHtml(t, edc, number, now, valid, days),
                 blocks: blocks.map(b => ({ key: b.key, letter: b.letter, name: b.name, title: b.title, net: sum(b.its, "totalSell"), gross: sum(b.its, "totalWithVat") }))
             })
             : headHtml(t, ed, logo) + title + metaHtml(t, edc, number, now, valid, days);
@@ -826,26 +841,31 @@
             ? `${qtyFmt(Math.round(kwh / 100) / 10)} ${t.eMwh}/${per}` : `${qtyFmt(Math.round(kwh / 10) * 10)} ${t.eKwh}/${per}`;
         const money0 = v => `${qtyFmt(Math.round(v / k))} ${cur}`;
         const co2 = est ? est.annual * EST.co2 / 1000 : 0;
-        const pbTile = (label, value) => `<div class="offer-payback-tile"><span${ed}>${esc(label)}</span><strong${ed}>${esc(value)}</strong></div>`;
-        const paybackPage = !(cover && info.segment === "biz" && est && est.payback > 0) ? "" : `
+        const pbHidden = key => (meta.hideTiles || []).includes(key);
+        const pbTile = (label, value, key) => pbHidden(key) ? "" :
+            `<div class="offer-payback-tile">${tileDel(key, opts.editable)}<span${ed}>${esc(label)}</span><strong${ed}>${esc(value)}</strong></div>`;
+        // экономика есть — 4 плитки; наземная СЭС + BESS (noEcon) — только выработка за год и CO₂
+        const econ = est && est.payback > 0;
+        const co2Tile = est ? pbTile(t.pbCo2, t.pbCo2Val.replace("{t}", qtyFmt(co2 >= 10 ? Math.round(co2) : Math.round(co2 * 10) / 10)), "co2") : "";
+        const pbTiles = !est ? "" : econ
+            ? pbTile(t.pbInv, t.pbInvVal.replace("{sum}", money0(result.commercialPrice)), "inv") +
+              pbTile(t.pbSave, t.pbSaveVal.replace("{sum}", money0(Math.round(est.savings / 10) * 10)), "save") +
+              pbTile(t.pbPay, "≈ " + yearsFmt(est.payback, lang), "pay") + co2Tile
+            : pbTile(t.pbAnnual, energy(est.annual, t.eYear), "prod") + co2Tile;
+        const paybackPage = !(cover && info.segment === "biz" && est && (econ || est.noEcon)) ? "" : `
   <section class="offer-payback">
     <div class="offer-kicker"${ed}>${esc(t.pbKicker)}</div>
-    <h2${ed}>${esc(t.pbTitle)}</h2>
+    <h2${ed}>${esc(econ ? t.pbTitle : t.pbTitleProd)}</h2>
     <div class="offer-yellow-rule"></div>
-    <div class="offer-payback-tiles">
-      ${pbTile(t.pbInv, t.pbInvVal.replace("{sum}", money0(result.commercialPrice)))}
-      ${pbTile(t.pbSave, t.pbSaveVal.replace("{sum}", money0(Math.round(est.savings / 10) * 10)))}
-      ${pbTile(t.pbPay, "≈ " + yearsFmt(est.payback, lang))}
-      ${pbTile(t.pbCo2, t.pbCo2Val.replace("{t}", qtyFmt(co2 >= 10 ? Math.round(co2) : Math.round(co2 * 10) / 10)))}
-    </div>
+    ${pbTiles ? `<div class="offer-payback-tiles">${pbTiles}</div>` : ""}
     <section class="offer-info-card">
       <h3><span>☀</span> ${esc(t.pbProd)}</h3>
       ${line(t.pbAnnual, energy(est.annual, t.eYear))}
       ${line(t.pbSpec, t.pbSpecVal.replace("{y}", qtyFmt(est.perKwp)))}
       ${line(t.pbMonth, energy(est.annual / 12, t.eMonth))}
-      ${line(t.pbUse, est.own ? t.pbUseOwn : t.pbUseCons.replace("{p}", Math.round(est.share * 100)).replace("{c}", qtyFmt(Math.round(est.cons))))}
-      ${line(t.pbTariff, t.pbTariffVal.replace("{t}", num1(est.tariff)))}
-      <p class="offer-card-note"${ed}>${esc(t.pbNote.replace("{y}", qtyFmt(est.perKwp)) + (est.cons && est.netb ? t.estNoteNet.replace("{credit}", num1(EST.credit)) : ""))}</p>
+      ${econ ? line(t.pbUse, est.own ? t.pbUseOwn : t.pbUseCons.replace("{p}", Math.round(est.share * 100)).replace("{c}", qtyFmt(Math.round(est.cons)))) : ""}
+      ${econ ? line(t.pbTariff, t.pbTariffVal.replace("{t}", num1(est.tariff))) : ""}
+      <p class="offer-card-note"${ed}>${esc((econ ? t.pbNote : t.pbNoteProd).replace("{y}", qtyFmt(est.perKwp)) + (est.cons && est.netb ? t.estNoteNet.replace("{credit}", num1(EST.credit)) : ""))}</p>
     </section>
     <div class="offer-payback-end offer-info-line"></div>
   </section>`;
