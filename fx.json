@@ -1,11 +1,11 @@
 {
   "src": "BNM",
-  "date": "09.11.2026",
-  "iso": "2026-11-09",
-  "EUR": 20.0701,
-  "USD": 17.9614,
-  "RON": 3.7575,
-  "UAH": 0.3964,
-  "fetched_at": "2026-11-09T12:50:36Z",
-  "url": "https://www.bnm.md/ro/official_exchange_rates?get_xml=1&date=09.11.2026"
+  "date": "10.11.2026",
+  "iso": "2026-11-10",
+  "EUR": 20.0749,
+  "USD": 17.94,
+  "RON": 3.7574,
+  "UAH": 0.394,
+  "fetched_at": "2026-11-10T12:37:26Z",
+  "url": "https://www.bnm.md/ro/official_exchange_rates?get_xml=1&date=10.11.2026"
 }
