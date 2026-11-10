@@ -150,7 +150,8 @@ window.RATEBOOK = {
 // kind: inv — инвертор; bat — батарейный модуль; batpm — силовой модуль / блок управления;
 //       guard — блок резерва; acc — аксессуар (в авто-подборе только счётчик, логгер, донгл).
 // fam:  luna — Huawei + LUNA2000; lv — Solis LV + Dyness LV; hv — Solis HV + Dyness STACK280;
-//       grid — сетевой инвертор без батареи.
+//       grid — сетевой инвертор без батареи;
+//       sigen — Sigenergy C&I: гибрид M1-HYA / M1-HYB Backup + набор SigenStack (не больше одного на инвертор).
 // =========================================
 
 window.RATEBOOK.equipmentLevel = "angro";
@@ -202,12 +203,35 @@ window.RATEBOOK.equipment = (function () {
         ["dyness-10", "Dyness", "PowerBox G2", "bat", "lv", 0, 0, 10, 10],
         ["dyness-16", "Dyness", "PowerBrick Plus", "bat", "lv", 0, 0, 16, 10],
         ["dyness-stack", "Dyness", "STACK280", "bat", "hv", 0, 0, 14.33, 10],
-        ["dyness-sbdu", "Dyness", "SBDU 200", "batpm", "hv", 0, 0, 0, 10]
+        ["dyness-sbdu", "Dyness", "SBDU 200", "batpm", "hv", 0, 0, 0, 10],
+        // Sigenergy C&I (2026-11-10): цены — прайс дистрибьютора 30.10.2026, в файле импорта
+        ["sigen-hya-50", "Sigenergy", "Sigen Hybrid 50M1-HYA", "inv", "sigen", 3, 50, 0, 10],
+        ["sigen-hya-60", "Sigenergy", "Sigen Hybrid 60M1-HYA", "inv", "sigen", 3, 60, 0, 10],
+        ["sigen-hya-80", "Sigenergy", "Sigen Hybrid 80M1-HYA", "inv", "sigen", 3, 80, 0, 10],
+        ["sigen-hya-100", "Sigenergy", "Sigen Hybrid 100M1-HYA", "inv", "sigen", 3, 100, 0, 10],
+        ["sigen-hya-110", "Sigenergy", "Sigen Hybrid 110M1-HYA", "inv", "sigen", 3, 110, 0, 10],
+        ["sigen-hya-125", "Sigenergy", "Sigen Hybrid 125M1-HYA", "inv", "sigen", 3, 125, 0, 10],
+        ["sigen-hyb-50", "Sigenergy", "Sigen Hybrid 50M1-HYB Backup", "inv", "sigen", 3, 50, 0, 10],
+        ["sigen-hyb-60", "Sigenergy", "Sigen Hybrid 60M1-HYB Backup", "inv", "sigen", 3, 60, 0, 10],
+        ["sigen-hyb-80", "Sigenergy", "Sigen Hybrid 80M1-HYB Backup", "inv", "sigen", 3, 80, 0, 10],
+        ["sigen-hyb-100", "Sigenergy", "Sigen Hybrid 100M1-HYB Backup", "inv", "sigen", 3, 100, 0, 10],
+        ["sigen-hyb-110", "Sigenergy", "Sigen Hybrid 110M1-HYB Backup", "inv", "sigen", 3, 110, 0, 10],
+        ["sigen-hyb-125", "Sigenergy", "Sigen Hybrid 125M1-HYB Backup", "inv", "sigen", 3, 125, 0, 10],
+        ["sigen-bat-60", "Sigenergy", "SigenStack BAT 60", "bat", "sigen", 0, 0, 60, 10],
+        ["sigen-bat-120", "Sigenergy", "SigenStack BAT 120", "bat", "sigen", 0, 0, 120, 10],
+        ["sigen-bat-180", "Sigenergy", "SigenStack BAT 180", "bat", "sigen", 0, 0, 180, 10],
+        ["sigen-bat-253", "Sigenergy", "SigenStack BAT 253", "bat", "sigen", 0, 0, 253, 10]
     ];
     const ph = (p, ro) => p === 1 ? (ro ? "monofazat" : "1 фаза") : (ro ? "trifazat" : "3 фазы");
     const names = (r) => {
         const [id, brand, model, kind, fam, phases, kw, kwh] = r;
         const kwhRo = String(kwh).replace(".", ",");
+        // Sigen: HYB Backup держит объект при отключении сети; набор SigenStack — модули BAT 12.0 по 12,06 кВт·ч
+        if (kind === "inv" && fam === "sigen" && / Backup$/.test(model)) return [`Invertor hibrid ${brand} ${model} (${kw} kW, trifazat, alimentare de rezervă la căderea rețelei)`, `Гибридный инвертор ${brand} ${model} (${kw} кВт, 3 фазы, резерв при отключении сети)`];
+        if (kind === "bat" && fam === "sigen") {
+            const mods = Math.round(kwh / 12.06);
+            return [`Baterie ${brand} ${model} (${mods} × BAT 12.0, ${kwhRo} kWh, LiFePO4)`, `Батарея ${brand} ${model} (${mods} × BAT 12.0, ${kwhRo} кВт·ч, LiFePO4)`];
+        }
         if (kind === "inv" && fam === "grid") return [`Invertor on-grid ${brand} ${model} (${kw} kW, trifazat)`, `Сетевой инвертор ${brand} ${model} (${kw} кВт, 3 фазы)`];
         if (kind === "inv") return [`Invertor hibrid ${brand} ${model} (${kw} kW, ${ph(phases, true)})`, `Гибридный инвертор ${brand} ${model} (${kw} кВт, ${ph(phases)})`];
         if (kind === "bat" && fam === "luna") return [`Modul baterie ${brand} ${model} (${kwhRo} kWh, LiFePO4)`, `Батарейный модуль ${brand} ${model} (${kwhRo} кВт·ч, LiFePO4)`];
@@ -240,5 +264,7 @@ window.RATEBOOK.equipment = (function () {
     // STACK280: 3–15 модулей в стеке на один SBDU 200 (по магазинам, сверить с даташитом)
     out["dyness-stack"].minPerStack = 3;
     out["dyness-stack"].perStack = 15;
+    // Sigen M1: серия HYB Backup — резерв; на инвертор 4–21 модулей BAT 12.0, то есть один набор SigenStack (даташит M1-HYA)
+    Object.values(out).filter(e => e.fam === "sigen" && e.kind === "inv").forEach(e => { e.backup = / Backup$/.test(e.model); });
     return out;
 })();

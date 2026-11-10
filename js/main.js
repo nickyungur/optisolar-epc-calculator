@@ -437,14 +437,17 @@
     }
     const sheetInOffer = id => id === "pv" ? state.pvInOffer !== false : isBessSheet(id) ? store(id).inOffer !== false : true;
     function genInput(sheet) {
-        if (sheet === "pv") return { ...state, product: "pv" };
+        // СЭС и вариант BESS на Sigen — СЭС садится на гибриды Sigen, их серия — по цели (2026-11-10)
+        if (sheet === "pv") return { ...state, product: "pv", pvForBess: state.product === "pv_bess" && (state.bessVariants || []).some(v => v.eqBrand === "sigen") };
         if (!isBessSheet(sheet)) return state;
         const v = store(sheet);
         // накопитель внутри наземного парка — забор и камеры уже на листе СЭС
         const noFence = state.product === "pv_bess" && state.mount === "ground";
         // лист СЭС в оффере — линия СН, SCADA и сдача СН считаются только на нём (волна 3, сводка 2.3)
         const sharedWithPv = state.product === "pv_bess" && state.pvInOffer !== false;
-        return { ...state, product: "bess", inverterKw: 0, zeroExport: false, noFence, sharedWithPv, bessKw: v.bessKw, bessKwh: v.bessKwh, eqBrand: v.eqBrand || "auto", eqInverter: v.eqInverter || "", eqBattery: v.eqBattery || "" };
+        // лист СЭС на Sigen — наборы SigenStack этого варианта садятся на его инверторы, а не на свои
+        const pvSigen = sharedWithPv && state.eqBrand === "sigen" && v.eqBrand === "sigen" ? GEN.generate(genInput("pv")).info.equip.sigenPv : null;
+        return { ...state, product: "bess", inverterKw: 0, zeroExport: false, noFence, sharedWithPv, pvSigen, bessKw: v.bessKw, bessKwh: v.bessKwh, eqBrand: v.eqBrand || "auto", eqInverter: v.eqInverter || "", eqBattery: v.eqBattery || "" };
     }
     // Переключение листа: поля «BESS, кВт / кВт·ч» показывают вариант этого листа
     function selectSheet(id) {
@@ -668,7 +671,7 @@
     // ---------- предупреждения в итоге (ревизия 2026-10-29: маржа, лимит выдачи, рыночные ставки) ----------
     // bad — красное, warn — жёлтое. Видны всегда, над итогом; в записку КД идут все.
     const MARKET_RATES = ["inv_hybrid", "bat_lv_kwh", "inv_ongrid"];
-    const BRAND_RU = { huawei: "Huawei", solis: "Solis + Dyness" };
+    const BRAND_RU = { huawei: "Huawei", solis: "Solis + Dyness", sigen: "Sigenergy" };
     function sheetAlerts(sh, pvAcKw) {
         const out = [];
         const c = curName();

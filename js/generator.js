@@ -95,7 +95,8 @@
     // по уровню цены RATEBOOK.equipmentLevel; бренд и модели можно выбрать вручную.
     // Модели куплены в Молдове — в «импорт и таможня» не входят.
     // =========================================
-    const BRAND_FAMS = { auto: ["luna", "lv", "hv", "grid"], huawei: ["luna", "grid"], solis: ["lv", "hv"], market: [] };
+    // Sigenergy — только выбором бренда: в «Авто» не участвует (2026-11-10)
+    const BRAND_FAMS = { auto: ["luna", "lv", "hv", "grid"], huawei: ["luna", "grid"], solis: ["lv", "hv"], sigen: ["sigen"], market: [] };
     // Инвертор может быть до 5% меньше расчётной мощности (панели ÷ 1,15): перегруз DC/AC до ≈ 1,2
     const KW_TOL = 0.95;
 
@@ -194,7 +195,95 @@
         return best;
     }
 
-    // p: {seg, hasPv, hasBess, pvAcKw, homeKw, bessKw, bessKwh, phases, brand, invChoice, batChoice, smallBiz, cabinetCost}
+    // Sigenergy C&I (бренд «Sigenergy», 2026-11-10): гибриды M1 50–125 кВт, СЭС садится на них же.
+    // Серия: цель «Резерв» — HYB Backup, иначе HYA; выбранный вручную инвертор задаёт модель и серию.
+    // Батарея — наборы SigenStack, не больше одного на инвертор (4–21 модулей BAT 12.0, даташит M1-HYA):
+    // ёмкость больше 253 кВт·ч × инверторы — инверторов больше. Наборы одного размера; при резерве — на каждом инверторе.
+    // Накопитель — только 0,4 кВ или до порога контейнеров (sigenBess); иначе BESS считается как без бренда, СЭС — на HYA.
+    // Бизнес «СЭС + BESS» — два листа. Лист СЭС на Sigen (pvForBess — рядом вариант BESS на Sigen): серия — по цели.
+    // Лист BESS на Sigen рядом с листом СЭС на Sigen (pvSigen — его инверторы): наборы садятся на них,
+    // свои инверторы — только на то, чего им не хватает (иначе инверторы попали бы в оффер дважды).
+    function selectSigen(p, out, inv, chosenInv, chosenBat) {
+        if (p.seg !== "biz") {
+            if (p.hasPv || p.hasBess) out.warnings.push("Sigenergy C&I — только для бизнеса (3 фазы, от 50 кВт): посчитано по рыночной ставке.");
+            return out;
+        }
+        const bess = p.hasBess && p.sigenBess;
+        const sets = eqAll().filter(e => e.fam === "sigen" && e.kind === "bat" && eqNet(e) > 0).sort((a, b) => a.kwh - b.kwh);
+        if (bess && !sets.length) out.warnings.push("Нет цен наборов SigenStack — накопитель посчитан без Sigen.");
+        const withBat = bess && sets.length > 0;
+        if (!withBat && !p.hasPv) return out;
+        const onPv = withBat && !p.hasPv ? (p.pvSigen || []).map(x => ({ e: eqGet(x.id), n: Number(x.n) || 0 })).filter(x => x.e && x.n > 0) : [];
+        const pvKw = onPv.reduce((s, x) => s + x.n * x.e.kw, 0);
+        const pvUnits = onPv.reduce((s, x) => s + x.n, 0);
+        const backup = chosenInv ? !!chosenInv.backup : onPv.length ? !!onPv[0].e.backup : (withBat || p.pvForBess) && p.goal === "backup";
+        const cands = inv.filter(e => !!e.backup === backup);
+        const need = Math.max(withBat ? p.bessKw : 0, p.hasPv ? p.pvAcKw : 0);
+        const maxSet = sets.length ? sets[sets.length - 1].kwh : 0;
+        const minUnits = withBat ? Math.max(1, Math.ceil(p.bessKwh / maxSet - 1e-9)) : 1;
+        // инверторы на мощность needKw, не меньше minN штук
+        const buy = (needKw, minN) => {
+            if (chosenInv) {
+                const n = Math.max(minN, Math.ceil(needKw * KW_TOL / chosenInv.kw - 1e-9));
+                return n > 0 ? { parts: [{ e: chosenInv, n }], kw: n * chosenInv.kw, units: n, cost: n * eqNet(chosenInv) } : null;
+            }
+            let c = needKw > 0 ? inverterCombo(cands, needKw, 999) : null;
+            if (minN > 0 && (!c || c.units < minN)) {
+                // ёмкость не помещается на эти инверторы — столько инверторов, сколько наборов, самые дешёвые подходящие
+                const fit = cands.filter(e => e.kw * minN + 1e-9 >= needKw * KW_TOL).sort((a, b) => eqNet(a) - eqNet(b))[0];
+                if (fit) c = { parts: [{ e: fit, n: minN }], kw: minN * fit.kw, units: minN, cost: minN * eqNet(fit) };
+            }
+            return c;
+        };
+        // остаток мощности — с тем же допуском KW_TOL, что и у всей мощности
+        const combo = onPv.length ? buy(Math.max(0, need * KW_TOL - pvKw) / KW_TOL, Math.max(0, minUnits - pvUnits)) : buy(need, minUnits);
+        out.invOptions = inv.slice();
+        if (!combo && !onPv.length) return out;
+        out.family = "sigen";
+        const kwAll = pvKw + (combo ? combo.kw : 0);
+        if (kwAll + 1e-9 < need * KW_TOL) out.warnings.push(`Инверторы Sigen — ${round2(kwAll)} кВт, а нужно ≈ ${round2(need)} кВт.`);
+        if (!withBat) {
+            out.pvInv = combo;
+            return out;
+        }
+        // набор: выбранный вручную — сколько нужно на ёмкость; иначе самый дешёвый из m одинаковых наборов (m ≤ инверторов).
+        // Мощность накопителя — только инверторы с набором (крупные первыми): их должно хватать на «BESS, кВт»
+        const unitKw = [...onPv, ...(combo ? combo.parts : [])].flatMap(x => Array(x.n).fill(x.e.kw)).sort((a, b) => b - a);
+        const units = unitKw.length;
+        const kwOf = m => unitKw.slice(0, m).reduce((s, k) => s + k, 0);
+        let mPow = 1;
+        while (mPow < units && kwOf(mPow) + 1e-9 < p.bessKw * KW_TOL) mPow++;
+        const mMin = backup ? units : mPow;
+        const chosenSet = chosenBat && chosenBat.fam === "sigen" && chosenBat.kind === "bat" ? chosenBat : null;
+        let bat = null;
+        const consider = (e, m) => {
+            const cost = m * eqNet(e);
+            if (!bat || cost < bat.cost - 0.5 || (Math.abs(cost - bat.cost) <= 0.5 && m < bat.stacks)) {
+                bat = { fam: "sigen", parts: [{ e, n: m }], kwh: m * e.kwh, stacks: m, cost };
+            }
+        };
+        if (chosenSet) consider(chosenSet, Math.max(mMin, Math.ceil(p.bessKwh / chosenSet.kwh - 1e-9)));
+        else {
+            for (let m = mMin; m <= units; m++) {
+                const e = sets.find(s => m * s.kwh + 1e-9 >= p.bessKwh);
+                if (e) consider(e, m);
+            }
+        }
+        if (!bat) return out;
+        bat.kw = kwOf(bat.stacks);
+        out.hybInv = combo;
+        out.battery = bat;
+        out.topology = "hv";
+        out.pvOnHybrid = !!p.hasPv;
+        out.sigenOnPv = pvUnits;
+        if (pvUnits) out.warnings.push(`Наборы SigenStack — на инверторы Sigen листа СЭС (${pvUnits} шт)${combo ? `, своих инверторов на листе BESS — ${combo.units}` : ", своих инверторов на листе BESS нет"}.`);
+        out.batOptions = sets.map(e => ({ id: e.id, label: `${eqLabel(e)} ${e.kwh} кВт·ч · ${Math.round(eqNet(e)).toLocaleString("ru-RU")} MDL без TVA` }));
+        if (bat.stacks > units) out.warnings.push(`Наборов SigenStack (${bat.stacks}) больше, чем инверторов (${units}): на инвертор — не больше одного набора (до 21 модуля). Выбери набор крупнее.`);
+        out.warnings.push("Sigenergy: входит ли Battery Controller в наборы SigenStack и что цены прайса — с TVA, сверить с поставщиком.");
+        return out;
+    }
+
+    // p: {seg, hasPv, hasBess, pvAcKw, homeKw, bessKw, bessKwh, phases, brand, invChoice, batChoice, smallBiz, cabinetCost, sigenBess, goal}
     // → {hybInv, battery, pvInv, topology, family, invOptions, batOptions, warnings}
     //   hybInv — гибридный инвертор с батареей (дом; малый BESS бизнеса), pvInv — сетевые инверторы СЭС
     function selectEquipment(p) {
@@ -211,6 +300,13 @@
         if (chosenBat && !fams.includes(chosenBat.fam)) { chosenBat = null; out.ignoredBat = true; }
         const one = e => ({ parts: [{ e, n: 1 }], kw: e.kw, units: 1, cost: eqNet(e) });
         const tag = x => `${Math.round(x).toLocaleString("ru-RU")} MDL без TVA`;
+        if (brand === "sigen") {
+            selectSigen(p, out, inv, chosenInv, chosenBat);
+            const usedS = (c, id) => !!c && c.parts.some(x => x.e.id === id);
+            if (chosenInv && !usedS(out.hybInv, chosenInv.id) && !usedS(out.pvInv, chosenInv.id)) out.ignoredInv = true;
+            if (chosenBat && !usedS(out.battery, chosenBat.id)) out.ignoredBat = true;
+            return out;
+        }
 
         // ---------- гибрид с батареей: дом с батареей или малый BESS бизнеса (0,4 кВ, до 50 кВт) ----------
         const homeBess = p.seg === "home" && p.hasBess;
@@ -337,6 +433,8 @@
             seg, hasPv, hasBess, pvAcKw: pvAcNeed, homeKw: homeAutoKw, bessKw, bessKwh, phases,
             brand: input.eqBrand || "auto", invChoice: input.eqInverter || "", batChoice: input.eqBattery || "",
             smallBiz: seg === "biz" && bessKw <= 50 && bessKwh <= 215 && !(mv && bessKwh >= N.containerFromKwh),
+            sigenBess: seg === "biz" && !(mv && bessKwh >= N.containerFromKwh), goal: input.goal || "",
+            pvForBess: !!input.pvForBess, pvSigen: Array.isArray(input.pvSigen) ? input.pvSigen : null,
             cabinetCost: (cabUnits * netMdl("ci_cabinet") + netMdl("ems_ci")) * importK
         });
         sel.warnings.forEach(w => warnings.push(w));
@@ -411,7 +509,7 @@
             }
             // текст — по фактическому порогу из норм (раньше писал «2 МВт·ч» при пороге 4 МВт·ч)
             if (seg === "biz" && !mv && bessKwh >= N.containerFromKwh) {
-                warnings.push(`${fmtKwh(N.containerFromKwh)} и больше на 0,4 кВ — посчитано шкафами. Для такой ёмкости обычно нужно подключение на 10 кВ.`);
+                warnings.push(`${fmtKwh(N.containerFromKwh)} и больше на 0,4 кВ — посчитано ${topology === "hv" ? "на инверторах Sigen" : "шкафами"}. Для такой ёмкости обычно нужно подключение на 10 кВ.`);
             }
         }
         if (seg === "home") {
@@ -481,13 +579,15 @@
         let containers = 0;
         if (hasBess) {
             if ((topology === "home" || topology === "hv") && sel.battery) {
-                if (!hybridAdded) {
+                // Sigen рядом с листом СЭС на Sigen: своих инверторов может не быть (наборы — на инверторы СЭС)
+                if (!hybridAdded && sel.hybInv) {
                     addCombo(sel.hybInv, "bess");
                     if (topology === "home") info.inverterKw = sel.hybInv.kw;
                 }
                 addBattery(sel.battery);
                 info.bessKwhInstalled = round2(sel.battery.kwh);
-                if (topology === "hv") info.bessKwInstalled = sel.hybInv.kw;
+                // Sigen: мощность — только инверторы с набором SigenStack
+                if (topology === "hv") info.bessKwInstalled = sel.battery.kw || sel.hybInv.kw;
             } else if (topology === "home") {
                 if (!hybridAdded) {
                     const invKw = pickStd([3, 5, 6, 8, 10, 12, 15, 20, 25, 30, 50], bessKw);
@@ -711,7 +811,16 @@
         // ---------- Электромонтаж ----------
         if (hasPv) add(seg === "home" ? "pv_install_home" : "pv_install_biz", pvKwp);
         if (topology === "home") add("home_bess_install", 1);
-        if (topology === "hv") {
+        if (topology === "hv" && sel.family === "sigen") {
+            // по набору SigenStack; инверторы листа BESS не входят в монтаж СЭС — монтаж «инвертор + батарея» на каждый
+            const own = sel.hybInv ? sel.hybInv.units : 0;
+            const batOnly = hasPv || (sel.sigenOnPv > 0 && !own);
+            const n = batOnly ? sel.battery.stacks : Math.max(own, sel.battery.stacks);
+            add("cabinet_install", n, batOnly
+                ? { name: "Montaj și conectare baterie SigenStack la invertor", nameRu: "Монтаж и подключение батареи SigenStack к инвертору" }
+                : { name: "Montaj și conectare invertor hibrid Sigen și baterie SigenStack", nameRu: "Монтаж и подключение гибридного инвертора Sigen и батареи SigenStack" });
+            if (cableLvM > 0) add("lv_cable_lay_m", cableLvM);
+        } else if (topology === "hv") {
             add("cabinet_install", 1, { name: "Montaj și conectare invertor hibrid și baterii HV", nameRu: "Монтаж и подключение гибридного инвертора и батарей HV" });
             if (cableLvM > 0) add("lv_cable_lay_m", cableLvM);
         }
@@ -790,7 +899,9 @@
             source: book.equipmentSource || "прайс дистрибьютора",
             pricesLoaded: eqAll().some(e => eqNet(e) > 0),
             ignoredInv: !!sel.ignoredInv,
-            ignoredBat: !!sel.ignoredBat
+            ignoredBat: !!sel.ignoredBat,
+            // инверторы Sigen листа СЭС — для листа BESS рядом (наборы SigenStack садятся на них)
+            sigenPv: sel.family === "sigen" && sel.pvInv ? sel.pvInv.parts.map(x => ({ id: x.e.id, n: x.n })) : null
         };
 
         return { items, warnings, info };
