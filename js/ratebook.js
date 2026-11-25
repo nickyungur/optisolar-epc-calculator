@@ -41,7 +41,7 @@ window.RATEBOOK = {
         bat_lv_kwh:       { ru: "Батарея LiFePO4 51,2 В (за кВт·ч)", ro: "Acumulator LiFePO4 51,2 V", cat: "main-equipment", unit: "kWh" },
         mount_roof_kwp:   { ru: "Крепёж на крышу (за кВтп)", ro: "Sistem de fixare pe acoperiș (aluminiu)", cat: "main-equipment", unit: "kWp" },
         mount_ground_kwp: { ru: "Наземный каркас (за кВтп)", ro: "Structură de montare la sol", cat: "main-equipment", unit: "kWp" },
-        ci_cabinet:       { ru: "Шкаф BESS 100 кВт / 215 кВт·ч (с PCS)", ro: "Dulap BESS C&I 100 kW / 215 kWh (LFP, PCS integrat)", cat: "main-equipment", unit: "buc" },
+        ci_cabinet:       { ru: "Шкаф BESS 100 кВт / 215 кВт·ч (с PCS)", ro: "Dulap BESS C&I 100 kW / 215 kWh (LFP, PCS integrat)", cat: "main-equipment", unit: "buc", kwh: 215 },
         container_kwh:    { ru: "Контейнеры BESS (за кВт·ч)", ro: "Containere BESS LFP (bloc DC)", cat: "main-equipment", unit: "kWh" },
         pcs_kw:           { ru: "PCS для контейнеров (за кВт)", ro: "Sistem de conversie a puterii (PCS)", cat: "main-equipment", unit: "kW" },
         trafo_800:        { ru: "Трансформатор силовой (база 800 кВА)", ro: "Transformator de putere", cat: "main-equipment", unit: "buc" },

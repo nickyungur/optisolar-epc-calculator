@@ -427,7 +427,9 @@
 
         // ---------- Подбор моделей из прайса ----------
         const pvAcNeed = hasPv ? (requestedInverterKw || pvKwp / 1.15) : 0;
-        const cabUnits = Math.max(Math.ceil(bessKwh / N.cabinetKwh - 1e-9), Math.ceil(bessKw / N.cabinetKw - 1e-9), 1);
+        // типовые шкафы C&I (рыночная ставка 100 кВт / 215 кВт·ч, модели нет) — в цене долей шкафа, а не целыми
+        // (решение пользователя 2026-11-25): 150 кВт / 500 кВт·ч = 2,33 шкафа, а не 3. Не меньше одного шкафа
+        const cabShare = Math.max(bessKwh / N.cabinetKwh, bessKw / N.cabinetKw, 1);
         const importK = 1 + (Number(book.rates.import_pct && book.rates.import_pct.price) || 0) / 100;
         const sel = selectEquipment({
             seg, hasPv, hasBess, pvAcKw: pvAcNeed, homeKw: homeAutoKw, bessKw, bessKwh, phases,
@@ -435,7 +437,7 @@
             smallBiz: seg === "biz" && bessKw <= 50 && bessKwh <= 215 && !(mv && bessKwh >= N.containerFromKwh),
             sigenBess: seg === "biz" && !(mv && bessKwh >= N.containerFromKwh), goal: input.goal || "",
             pvForBess: !!input.pvForBess, pvSigen: Array.isArray(input.pvSigen) ? input.pvSigen : null,
-            cabinetCost: (cabUnits * netMdl("ci_cabinet") + netMdl("ems_ci")) * importK
+            cabinetCost: (cabShare * netMdl("ci_cabinet") + netMdl("ems_ci")) * importK
         });
         sel.warnings.forEach(w => warnings.push(w));
 
@@ -597,16 +599,21 @@
                 add("bat_lv_kwh", bessKwh);
                 info.bessKwhInstalled = round2(bessKwh);
             } else if (topology === "cabinet") {
+                // шкафов целыми — для монтажа, фундамента, заземления и рейсов (с запасом)
                 units = Math.max(Math.ceil(bessKwh / N.cabinetKwh - 1e-9), Math.ceil(bessKw / N.cabinetKw - 1e-9));
-                add("ci_cabinet", units, {
-                    name: `Dulap BESS C&I ${N.cabinetKw} kW / ${N.cabinetKwh} kWh (LFP, PCS integrat)`,
-                    nameRu: `Шкаф BESS ${N.cabinetKw} кВт / ${N.cabinetKwh} кВт·ч`
+                // Типовой шкаф — не модель, а рыночная ставка: в оффере кВт и кВт·ч как введены, батарея одной строкой за кВт·ч,
+                // цена — доля шкафа (cabShare). Было: шкафы целыми, 150 кВт / 500 кВт·ч → «BESS 300 kW / 645 kWh»
+                // в заголовке и цена трёх шкафов (решение пользователя 2026-11-25). Шкаф из КП — «Заменить из базы»:
+                // количество станет штуками по ёмкости модели
+                add("ci_cabinet", bessKwh, {
+                    unit: "kWh",
+                    unitCost: cabShare * netMdl("ci_cabinet") / bessKwh,
+                    name: "Sistem de stocare BESS C&I (dulapuri LFP, PCS integrat)",
+                    nameRu: "Система накопления BESS C&I (шкафы LFP, PCS встроен)"
                 });
                 add("ems_ci", 1);
-                // расчёт от Claude — шкафы из прайса своей строкой (LUNA2000-241, PowerHill 125/261): ёмкость и мощность как введены,
-                // а не шкафы нормы 100 кВт / 215 кВт·ч (было «200 kW / 430 kWh» вместо 108 / 241, MOLINART 2026-11-03)
-                info.bessKwhInstalled = input.manual ? bessKwh : units * N.cabinetKwh;
-                info.bessKwInstalled = input.manual ? bessKw : units * N.cabinetKw;
+                info.bessKwhInstalled = bessKwh;
+                info.bessKwInstalled = bessKw;
             } else if (topology === "container") {
                 containers = Math.ceil(bessKwh / N.containerKwh - 1e-9);
                 const kwhInst = Math.ceil(bessKwh / 100 - 1e-9) * 100;
